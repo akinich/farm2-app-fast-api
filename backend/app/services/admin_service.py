@@ -2,11 +2,16 @@
 ================================================================================
 Farm Management System - Admin Service Layer
 ================================================================================
-Version: 1.3.0
+Version: 1.4.0
 Last Updated: 2025-11-17
 
 Changelog:
 ----------
+v1.4.0 (2025-11-17):
+  - Added parent_module_id to get_user_accessible_modules()
+  - Fixed hierarchical navigation in frontend
+  - Now properly returns parent_module_id for nested modules
+
 v1.3.0 (2025-11-17):
   - Implemented create_user() with password_hash support
   - Added hierarchical module support in get_modules_list()
@@ -661,15 +666,17 @@ async def get_activity_logs(
 
 async def get_user_accessible_modules(user_id: str) -> List[Dict]:
     """Get modules accessible to user (using view)"""
-    modules = await fetch_all(
+    modules_raw = await fetch_all(
         """
-        SELECT module_id, module_key, module_name, icon, display_order
+        SELECT module_id, module_key, module_name, icon, display_order, parent_module_id
         FROM user_accessible_modules
         WHERE user_id = $1
         ORDER BY display_order
         """,
         user_id,
     )
+    # Convert to list of dicts
+    modules = [dict(m) for m in modules_raw]
     return modules
 
 
