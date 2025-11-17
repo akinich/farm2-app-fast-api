@@ -1,6 +1,19 @@
 /**
  * Main Entry Point
- * Version: 1.0.0
+ * Version: 1.1.0
+ * Last Updated: 2025-11-17
+ *
+ * Changelog:
+ * ----------
+ * v1.1.0 (2025-11-17):
+ *   - Added autoHideDuration to SnackbarProvider (3 seconds auto-dismiss)
+ *   - Added close button with CloseIcon to toast notifications
+ *   - Improved UX for notification dismissal
+ *
+ * v1.0.0 (2025-11-17):
+ *   - Initial application entry point
+ *   - React 18 setup with providers
+ *   - React Query, Theme, and Snackbar configuration
  */
 
 import React from 'react';

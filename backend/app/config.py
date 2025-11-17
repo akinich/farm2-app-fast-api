@@ -2,15 +2,19 @@
 ================================================================================
 Farm Management System - Configuration Management
 ================================================================================
-Version: 1.0.0
+Version: 1.1.0
 Last Updated: 2025-11-17
 
 Changelog:
 ----------
+v1.1.0 (2025-11-17):
+  - Removed Supabase-specific configuration fields
+  - Simplified to database-only configuration
+  - Removed SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_KEY fields
+
 v1.0.0 (2025-11-17):
   - Initial configuration setup
   - Pydantic Settings for environment validation
-  - Supabase, Database, JWT, CORS configuration
   - Type-safe settings with validation
 
 ================================================================================

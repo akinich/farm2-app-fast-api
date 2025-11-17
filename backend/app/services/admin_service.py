@@ -2,11 +2,17 @@
 ================================================================================
 Farm Management System - Admin Service Layer
 ================================================================================
-Version: 1.0.0
+Version: 1.1.0
 Last Updated: 2025-11-17
 
 Changelog:
 ----------
+v1.1.0 (2025-11-17):
+  - Fixed all execute() calls to use execute_query()
+  - Removed get_supabase() import dependencies
+  - Modified create_user() to return 501 with instructions
+  - Database-only operations (no Supabase client)
+
 v1.0.0 (2025-11-17):
   - Initial admin service implementation
   - User CRUD operations
