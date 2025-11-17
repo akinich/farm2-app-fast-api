@@ -159,6 +159,13 @@ export default function DashboardLayout() {
                   </ListItemButton>
                   <ListItemButton
                     sx={{ pl: 4 }}
+                    selected={location.pathname === '/admin/modules'}
+                    onClick={() => navigate('/admin/modules')}
+                  >
+                    <ListItemText primary="Module Management" />
+                  </ListItemButton>
+                  <ListItemButton
+                    sx={{ pl: 4 }}
                     selected={location.pathname === '/admin/activity'}
                     onClick={() => navigate('/admin/activity')}
                   >
