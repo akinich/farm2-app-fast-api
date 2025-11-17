@@ -27,7 +27,10 @@ from datetime import date, datetime, timedelta
 import logging
 import math
 
-from app.database import get_db, fetch_one, fetch_all, execute_query, DatabaseTransaction
+from app.database import (
+    get_db, fetch_one, fetch_all, execute_query, DatabaseTransaction,
+    fetch_one_tx, fetch_all_tx, execute_query_tx
+)
 from app.services.auth_service import log_activity
 from app.schemas.inventory import *
 
@@ -350,9 +353,9 @@ async def add_stock(request: AddStockRequest, user_id: str) -> Dict:
             status_code=status.HTTP_404_NOT_FOUND, detail="Item not found"
         )
 
-    async with DatabaseTransaction():
+    async with DatabaseTransaction() as conn:
         # Insert batch
-        batch_id = await execute_query(
+        batch_id = await execute_query_tx(
             """
             INSERT INTO inventory_batches (
                 item_master_id, batch_number, quantity_purchased, remaining_qty,
@@ -371,16 +374,19 @@ async def add_stock(request: AddStockRequest, user_id: str) -> Dict:
             request.po_number,
             request.notes,
             user_id,
+            conn=conn,
         )
 
         # Get new total (trigger updates current_qty automatically)
-        item_updated = await fetch_one(
-            "SELECT current_qty FROM item_master WHERE id = $1", request.item_master_id
+        item_updated = await fetch_one_tx(
+            "SELECT current_qty FROM item_master WHERE id = $1",
+            request.item_master_id,
+            conn=conn
         )
         new_total = item_updated["current_qty"]
 
         # Log transaction
-        await execute_query(
+        await execute_query_tx(
             """
             INSERT INTO inventory_transactions (
                 item_master_id, batch_id, transaction_type, quantity_change,
@@ -397,6 +403,7 @@ async def add_stock(request: AddStockRequest, user_id: str) -> Dict:
             request.po_number,
             user_id,
             request.notes,
+            conn=conn,
         )
 
     return {
@@ -457,7 +464,7 @@ async def use_stock_fifo(request: UseStockRequest, user_id: str, username: str) 
     batches_used = []
     total_cost = Decimal("0")
 
-    async with DatabaseTransaction():
+    async with DatabaseTransaction() as conn:
         for batch in batches:
             if remaining_to_deduct <= 0:
                 break
@@ -470,21 +477,23 @@ async def use_stock_fifo(request: UseStockRequest, user_id: str, username: str) 
 
             # Update batch remaining quantity
             new_batch_qty = batch_remaining - qty_from_batch
-            await execute_query(
+            await execute_query_tx(
                 "UPDATE inventory_batches SET remaining_qty = $1, updated_at = NOW() WHERE id = $2",
                 new_batch_qty,
                 batch["id"],
+                conn=conn,
             )
 
             # Get new item balance (trigger updates current_qty)
-            item_updated = await fetch_one(
+            item_updated = await fetch_one_tx(
                 "SELECT current_qty FROM item_master WHERE id = $1",
                 request.item_master_id,
+                conn=conn,
             )
             new_balance = item_updated["current_qty"]
 
             # Log transaction
-            await execute_query(
+            await execute_query_tx(
                 """
                 INSERT INTO inventory_transactions (
                     item_master_id, batch_id, transaction_type, quantity_change,
@@ -504,6 +513,7 @@ async def use_stock_fifo(request: UseStockRequest, user_id: str, username: str) 
                 user_id,
                 username,
                 f"{request.purpose} | {request.notes}" if request.notes else request.purpose,
+                conn=conn,
             )
 
             batches_used.append(
@@ -630,9 +640,9 @@ async def create_purchase_order(request: CreatePORequest, user_id: str) -> Dict:
             status_code=status.HTTP_404_NOT_FOUND, detail="Supplier not found"
         )
 
-    async with DatabaseTransaction():
+    async with DatabaseTransaction() as conn:
         # Create PO (total_cost will be auto-calculated by trigger)
-        po_id = await execute_query(
+        po_id = await execute_query_tx(
             """
             INSERT INTO purchase_orders (
                 po_number, supplier_id, po_date, expected_delivery, notes, created_by
@@ -646,11 +656,12 @@ async def create_purchase_order(request: CreatePORequest, user_id: str) -> Dict:
             request.expected_delivery,
             request.notes,
             user_id,
+            conn=conn,
         )
 
         # Insert PO items
         for item in request.items:
-            await execute_query(
+            await execute_query_tx(
                 """
                 INSERT INTO purchase_order_items (
                     purchase_order_id, item_master_id, ordered_qty, unit_cost
@@ -661,6 +672,7 @@ async def create_purchase_order(request: CreatePORequest, user_id: str) -> Dict:
                 item.item_master_id,
                 item.ordered_qty,
                 item.unit_cost,
+                conn=conn,
             )
 
     # Fetch created PO

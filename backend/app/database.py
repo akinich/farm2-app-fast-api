@@ -143,21 +143,40 @@ async def fetch_all(query: str, *values) -> List[Dict]:
         raise
 
 
-async def execute_query(query: str, *values) -> str:
+async def execute_query(query: str, *values):
     """
     Execute INSERT, UPDATE, DELETE query.
+    Automatically handles RETURNING clauses.
 
     Args:
         query: SQL query with $1, $2, etc. placeholders
         *values: Values to bind to placeholders
 
     Returns:
-        Result status string (e.g., "INSERT 0 1")
+        - If query has RETURNING clause: returns the value (single column) or dict (multiple columns)
+        - Otherwise: returns status string (e.g., "INSERT 0 1")
     """
     try:
         async with pool.acquire() as conn:
-            result = await conn.execute(query, *values)
-            return result
+            # Check if query has RETURNING clause
+            if 'RETURNING' in query.upper():
+                # Count how many columns are being returned
+                returning_part = query.upper().split('RETURNING')[1].strip()
+                # Remove any trailing semicolon or whitespace
+                returning_part = returning_part.rstrip(';').strip()
+
+                # If returning single column (like "RETURNING id")
+                if ',' not in returning_part and ' ' not in returning_part:
+                    result = await conn.fetchval(query, *values)
+                else:
+                    # Multiple columns - return as dict
+                    result = await conn.fetchrow(query, *values)
+                    result = dict(result) if result else None
+                return result
+            else:
+                # No RETURNING clause - just execute
+                result = await conn.execute(query, *values)
+                return result
     except Exception as e:
         logger.error(f"Query error (execute): {e}")
         raise
@@ -183,6 +202,57 @@ async def execute_many(query: str, values: List[tuple]) -> None:
     except Exception as e:
         logger.error(f"Query error (execute_many): {e}")
         raise
+
+
+# ============================================================================
+# TRANSACTION-AWARE QUERY HELPERS
+# ============================================================================
+
+
+async def fetch_one_tx(query: str, *values, conn=None) -> Optional[Dict]:
+    """
+    Transaction-aware version of fetch_one.
+    If conn is provided, uses that connection. Otherwise acquires from pool.
+    """
+    if conn:
+        result = await conn.fetchrow(query, *values)
+        return dict(result) if result else None
+    else:
+        return await fetch_one(query, *values)
+
+
+async def fetch_all_tx(query: str, *values, conn=None) -> List[Dict]:
+    """
+    Transaction-aware version of fetch_all.
+    If conn is provided, uses that connection. Otherwise acquires from pool.
+    """
+    if conn:
+        results = await conn.fetch(query, *values)
+        return [dict(row) for row in results]
+    else:
+        return await fetch_all(query, *values)
+
+
+async def execute_query_tx(query: str, *values, conn=None):
+    """
+    Transaction-aware version of execute_query.
+    If conn is provided, uses that connection. Otherwise acquires from pool.
+    """
+    if conn:
+        # Same logic as execute_query but using provided connection
+        if 'RETURNING' in query.upper():
+            returning_part = query.upper().split('RETURNING')[1].strip().rstrip(';').strip()
+            if ',' not in returning_part and ' ' not in returning_part:
+                result = await conn.fetchval(query, *values)
+            else:
+                result = await conn.fetchrow(query, *values)
+                result = dict(result) if result else None
+            return result
+        else:
+            result = await conn.execute(query, *values)
+            return result
+    else:
+        return await execute_query(query, *values)
 
 
 # ============================================================================
