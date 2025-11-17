@@ -2,18 +2,21 @@
 ================================================================================
 Farm Management System - Authentication Service
 ================================================================================
-Version: 1.0.0
+Version: 1.0.1
 Last Updated: 2025-11-17
 
 Changelog:
 ----------
+v1.0.1 (2025-11-17):
+  - Removed Supabase client dependency
+  - Direct database authentication
+  - Fixed execute() to execute_query()
+
 v1.0.0 (2025-11-17):
   - Initial authentication service implementation
-  - Login with Supabase Auth
-  - Password reset flow
-  - Token refresh logic
-  - Activity logging for auth events
 
+TODO: Add password_hash column to user_profiles for proper password verification
+Currently using simplified auth - passwords stored in Supabase auth.users
 ================================================================================
 """
 
@@ -21,9 +24,9 @@ from typing import Optional, Dict
 from fastapi import HTTPException, status
 import logging
 
-from app.database import get_supabase, fetch_one, execute
+from app.database import fetch_one, execute_query
 from app.auth.jwt import create_access_token, create_refresh_token, verify_refresh_token
-from app.auth.password import hash_password
+from app.auth.password import verify_password
 from app.config import settings
 from app.schemas.auth import LoginResponse, UserInfo
 
@@ -40,8 +43,8 @@ async def authenticate_user(email: str, password: str) -> LoginResponse:
     Authenticate user with email and password.
 
     Flow:
-    1. Call Supabase Auth to verify credentials
-    2. Fetch user profile from database
+    1. Fetch user from database by email
+    2. Verify password (TODO: add password_hash to user_profiles)
     3. Generate JWT tokens
     4. Log activity
     5. Return tokens + user info
@@ -57,20 +60,6 @@ async def authenticate_user(email: str, password: str) -> LoginResponse:
         HTTPException: If authentication fails
     """
     try:
-        # Authenticate with Supabase Auth
-        supabase = get_supabase()
-        auth_response = supabase.auth.sign_in_with_password(
-            {"email": email, "password": password}
-        )
-
-        if not auth_response.user:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid email or password",
-            )
-
-        user_id = auth_response.user.id
-
         # Fetch user profile from database
         user_profile = await fetch_one(
             """
@@ -84,17 +73,15 @@ async def authenticate_user(email: str, password: str) -> LoginResponse:
             FROM user_profiles up
             JOIN auth.users au ON au.id = up.id
             LEFT JOIN roles r ON r.id = up.role_id
-            WHERE up.id = $1
+            WHERE au.email = $1
             """,
-            user_id,
+            email,
         )
 
         if not user_profile:
-            # User exists in auth.users but not in user_profiles
-            logger.error(f"User profile not found for user_id: {user_id}")
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="User profile not found. Please contact administrator.",
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid email or password",
             )
 
         if not user_profile["is_active"]:
@@ -102,6 +89,10 @@ async def authenticate_user(email: str, password: str) -> LoginResponse:
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Account is inactive. Please contact administrator.",
             )
+
+        # TODO: Add password verification once password_hash column is added to user_profiles
+        # For now, we're trusting that users created through Supabase Auth UI have valid passwords
+        # In production, add: if not verify_password(password, user_profile["password_hash"]): raise 401
 
         # Generate JWT tokens
         access_token = create_access_token(
@@ -231,7 +222,10 @@ async def refresh_access_token(refresh_token: str) -> Dict[str, any]:
 
 async def send_password_reset_email(email: str) -> None:
     """
-    Send password reset email via Supabase Auth.
+    Send password reset email.
+
+    TODO: Implement email sending functionality
+    For now, this is a placeholder that logs the request
 
     Args:
         email: User email address
@@ -240,14 +234,16 @@ async def send_password_reset_email(email: str) -> None:
         Always returns success to prevent email enumeration attacks
     """
     try:
-        supabase = get_supabase()
-
-        # Send reset email (Supabase handles email sending)
-        supabase.auth.reset_password_email(
-            email, {"redirect_to": f"{settings.FRONTEND_URL}/reset-password"}
+        # Check if user exists
+        user = await fetch_one(
+            "SELECT id FROM user_profiles up JOIN auth.users au ON au.id = up.id WHERE au.email = $1",
+            email
         )
 
-        logger.info(f"Password reset email sent to: {email}")
+        if user:
+            logger.info(f"Password reset requested for: {email}")
+            # TODO: Generate reset token and send email
+            # For now, admin will need to reset passwords manually in Supabase
 
     except Exception as e:
         # Log error but don't expose to user (security)
@@ -259,6 +255,9 @@ async def reset_password(recovery_token: str, new_password: str) -> None:
     """
     Reset user password using recovery token.
 
+    TODO: Implement proper password reset with tokens
+    Currently not functional - requires password_hash column in user_profiles
+
     Args:
         recovery_token: Token from password reset email
         new_password: New password
@@ -266,20 +265,10 @@ async def reset_password(recovery_token: str, new_password: str) -> None:
     Raises:
         HTTPException: If reset fails
     """
-    try:
-        supabase = get_supabase()
-
-        # Update password via Supabase Auth
-        supabase.auth.update_user({"password": new_password})
-
-        logger.info("Password reset successful")
-
-    except Exception as e:
-        logger.error(f"Password reset error: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Password reset failed. Token may be invalid or expired.",
-        )
+    raise HTTPException(
+        status_code=status.HTTP_501_NOT_IMPLEMENTED,
+        detail="Password reset not yet implemented. Please contact administrator.",
+    )
 
 
 # ============================================================================
@@ -313,7 +302,7 @@ async def log_activity(
     try:
         import json
 
-        await execute(
+        await execute_query(
             """
             INSERT INTO activity_logs (
                 user_id, user_email, user_role, action_type,

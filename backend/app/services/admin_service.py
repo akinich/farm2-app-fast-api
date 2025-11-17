@@ -23,7 +23,7 @@ from fastapi import HTTPException, status
 import logging
 import math
 
-from app.database import get_db, get_supabase, fetch_one, fetch_all, execute
+from app.database import get_db, fetch_one, fetch_all, execute_query
 from app.auth.password import generate_temporary_password, hash_password
 from app.services.auth_service import log_activity
 from app.schemas.admin import (
@@ -124,6 +124,11 @@ async def create_user(request: CreateUserRequest, created_by_id: str) -> Dict:
     """
     Create new user with temporary password.
 
+    NOTE: User creation now requires manual Supabase UI setup since we removed the Supabase client.
+    This function creates the user_profile record only.
+
+    TODO: Implement full user creation with password_hash column or restore Supabase client for admin operations
+
     Args:
         request: CreateUserRequest with email, full_name, role_id
         created_by_id: Admin user ID creating this user
@@ -138,34 +143,26 @@ async def create_user(request: CreateUserRequest, created_by_id: str) -> Dict:
         # Generate temporary password
         temp_password = generate_temporary_password()
 
-        # Create user in Supabase Auth
-        supabase = get_supabase()
-        auth_response = supabase.auth.admin.create_user(
-            {
-                "email": request.email,
-                "password": temp_password,
-                "email_confirm": True,  # Auto-confirm email
-            }
+        # For now, instruct admin to create user in Supabase UI first
+        # Then we create the profile here
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="User creation requires Supabase UI. Please:\n1. Create user in Supabase Auth\n2. Run SQL: INSERT INTO user_profiles (id, full_name, role_id, is_active) VALUES ('USER_UID', 'Name', ROLE_ID, TRUE)",
         )
 
-        if not auth_response.user:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to create user in authentication system",
-            )
-
-        user_id = auth_response.user.id
-
-        # Create user profile
-        await execute(
-            """
-            INSERT INTO user_profiles (id, full_name, role_id, is_active)
-            VALUES ($1, $2, $3, TRUE)
-            """,
-            user_id,
-            request.full_name,
-            request.role_id,
-        )
+        # TODO: Once password_hash column is added, implement like this:
+        # import uuid
+        # user_id = str(uuid.uuid4())
+        # password_hash = hash_password(temp_password)
+        #
+        # # Insert into auth.users (if we have permission)
+        # await execute_query("INSERT INTO auth.users (id, email) VALUES ($1, $2)", user_id, request.email)
+        #
+        # # Create user profile
+        # await execute_query(
+        #     "INSERT INTO user_profiles (id, full_name, role_id, is_active, password_hash) VALUES ($1, $2, $3, TRUE, $4)",
+        #     user_id, request.full_name, request.role_id, password_hash
+        # )
 
         # Fetch created user with role info
         user = await fetch_one(
@@ -275,7 +272,7 @@ async def update_user(
         SET {', '.join(update_fields)}
         WHERE id = ${param_count}
     """
-    await execute(query, *params)
+    await execute_query(query, *params)
 
     # Fetch updated user
     updated_user = await fetch_one(
@@ -343,7 +340,7 @@ async def delete_user(user_id: str, deleted_by_id: str) -> None:
         )
 
     # Soft delete (deactivate)
-    await execute(
+    await execute_query(
         "UPDATE user_profiles SET is_active = FALSE, updated_at = NOW() WHERE id = $1",
         user_id,
     )
@@ -424,7 +421,7 @@ async def update_module(module_id: int, request: UpdateModuleRequest) -> Dict:
         SET {', '.join(update_fields)}
         WHERE id = ${param_count}
     """
-    await execute(query, *params)
+    await execute_query(query, *params)
 
     # Fetch updated module
     module = await fetch_one("SELECT * FROM modules WHERE id = $1", module_id)
@@ -484,7 +481,7 @@ async def update_user_permissions(
         )
 
     # Delete existing permissions
-    await execute("DELETE FROM user_module_permissions WHERE user_id = $1", user_id)
+    await execute_query("DELETE FROM user_module_permissions WHERE user_id = $1", user_id)
 
     # Insert new permissions
     if request.module_ids:
@@ -498,7 +495,7 @@ async def update_user_permissions(
             INSERT INTO user_module_permissions (user_id, module_id, can_access, granted_by, granted_at)
             VALUES {', '.join(values)}
         """
-        await execute(insert_query)
+        await execute_query(insert_query)
 
     # Get module keys
     module_keys = await fetch_all(

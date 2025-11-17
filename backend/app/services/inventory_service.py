@@ -27,7 +27,7 @@ from datetime import date, datetime, timedelta
 import logging
 import math
 
-from app.database import get_db, fetch_one, fetch_all, execute, DatabaseTransaction
+from app.database import get_db, fetch_one, fetch_all, execute_query, DatabaseTransaction
 from app.services.auth_service import log_activity
 from app.schemas.inventory import *
 
@@ -101,7 +101,7 @@ async def create_item(request: CreateItemRequest, user_id: str) -> Dict:
             )
 
     # Insert item
-    item_id = await execute(
+    item_id = await execute_query(
         """
         INSERT INTO item_master (
             item_name, sku, category, unit, default_supplier_id,
@@ -203,7 +203,7 @@ async def update_item(
         SET {', '.join(update_fields)}
         WHERE id = ${param_count}
     """
-    await execute(query, *params)
+    await execute_query(query, *params)
 
     # Fetch updated item
     item = await fetch_one(
@@ -221,7 +221,7 @@ async def update_item(
 
 async def delete_item(item_id: int) -> None:
     """Delete item (soft delete)"""
-    result = await execute(
+    result = await execute_query(
         "UPDATE item_master SET is_active = FALSE WHERE id = $1", item_id
     )
     if not result:
@@ -250,7 +250,7 @@ async def get_suppliers_list() -> List[Dict]:
 
 async def create_supplier(request: CreateSupplierRequest) -> Dict:
     """Create new supplier"""
-    supplier_id = await execute(
+    supplier_id = await execute_query(
         """
         INSERT INTO suppliers (supplier_name, contact_person, phone, email, address)
         VALUES ($1, $2, $3, $4, $5)
@@ -317,7 +317,7 @@ async def update_supplier(supplier_id: int, request: UpdateSupplierRequest) -> D
         SET {', '.join(update_fields)}
         WHERE id = ${param_count}
     """
-    await execute(query, *params)
+    await execute_query(query, *params)
 
     supplier = await fetch_one("SELECT * FROM suppliers WHERE id = $1", supplier_id)
     return supplier
@@ -352,7 +352,7 @@ async def add_stock(request: AddStockRequest, user_id: str) -> Dict:
 
     async with DatabaseTransaction():
         # Insert batch
-        batch_id = await execute(
+        batch_id = await execute_query(
             """
             INSERT INTO inventory_batches (
                 item_master_id, batch_number, quantity_purchased, remaining_qty,
@@ -380,7 +380,7 @@ async def add_stock(request: AddStockRequest, user_id: str) -> Dict:
         new_total = item_updated["current_qty"]
 
         # Log transaction
-        await execute(
+        await execute_query(
             """
             INSERT INTO inventory_transactions (
                 item_master_id, batch_id, transaction_type, quantity_change,
@@ -470,7 +470,7 @@ async def use_stock_fifo(request: UseStockRequest, user_id: str, username: str) 
 
             # Update batch remaining quantity
             new_batch_qty = batch_remaining - qty_from_batch
-            await execute(
+            await execute_query(
                 "UPDATE inventory_batches SET remaining_qty = $1, updated_at = NOW() WHERE id = $2",
                 new_batch_qty,
                 batch["id"],
@@ -484,7 +484,7 @@ async def use_stock_fifo(request: UseStockRequest, user_id: str, username: str) 
             new_balance = item_updated["current_qty"]
 
             # Log transaction
-            await execute(
+            await execute_query(
                 """
                 INSERT INTO inventory_transactions (
                     item_master_id, batch_id, transaction_type, quantity_change,
@@ -632,7 +632,7 @@ async def create_purchase_order(request: CreatePORequest, user_id: str) -> Dict:
 
     async with DatabaseTransaction():
         # Create PO (total_cost will be auto-calculated by trigger)
-        po_id = await execute(
+        po_id = await execute_query(
             """
             INSERT INTO purchase_orders (
                 po_number, supplier_id, po_date, expected_delivery, notes, created_by
@@ -650,7 +650,7 @@ async def create_purchase_order(request: CreatePORequest, user_id: str) -> Dict:
 
         # Insert PO items
         for item in request.items:
-            await execute(
+            await execute_query(
                 """
                 INSERT INTO purchase_order_items (
                     purchase_order_id, item_master_id, ordered_qty, unit_cost
@@ -717,7 +717,7 @@ async def update_purchase_order_status(po_id: int, request: UpdatePORequest) -> 
         SET {', '.join(update_fields)}
         WHERE id = ${param_count}
     """
-    result = await execute(query, *params)
+    result = await execute_query(query, *params)
 
     # Fetch updated PO
     po = await fetch_one(
