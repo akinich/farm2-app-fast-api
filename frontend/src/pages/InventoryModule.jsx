@@ -1,10 +1,18 @@
 /**
  * Inventory Module - Items, Stock, Purchase Orders, Alerts
- * Version: 1.1.0
+ * Version: 1.2.0
  * Last Updated: 2025-11-17
  *
  * Changelog:
  * ----------
+ * v1.2.0 (2025-11-17):
+ *   - Implemented complete Add Item form with validation
+ *   - Added category and supplier dropdown selections
+ *   - Added custom category entry support
+ *   - Integrated with inventory API for item creation
+ *   - Added form state management and error handling
+ *   - Added loading states and success/error notifications
+ *
  * v1.1.0 (2025-11-17):
  *   - Added Inventory Dashboard page with metrics overview
  *   - Added placeholder dialogs for Add Item and Create PO actions
@@ -37,10 +45,248 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  FormHelperText,
 } from '@mui/material';
 import { Add as AddIcon, Warning as WarningIcon } from '@mui/icons-material';
-import { useQuery } from 'react-query';
+import { useQuery, useMutation, useQueryClient } from 'react-query';
+import { useSnackbar } from 'notistack';
 import { inventoryAPI } from '../api';
+
+// Add Item Dialog Component
+function AddItemDialog({ open, onClose, onSuccess }) {
+  const queryClient = useQueryClient();
+  const { enqueueSnackbar } = useSnackbar();
+
+  const [formData, setFormData] = useState({
+    item_name: '',
+    sku: '',
+    category: '',
+    unit: '',
+    default_supplier_id: '',
+    reorder_threshold: '0',
+    min_stock_level: '0',
+  });
+
+  const [errors, setErrors] = useState({});
+
+  // Fetch categories and suppliers for dropdowns
+  const { data: categoriesData } = useQuery('categories', inventoryAPI.getCategories);
+  const { data: suppliersData } = useQuery('suppliers', inventoryAPI.getSuppliers);
+
+  const createItemMutation = useMutation(
+    (data) => inventoryAPI.createItem(data),
+    {
+      onSuccess: () => {
+        enqueueSnackbar('Item created successfully', { variant: 'success' });
+        queryClient.invalidateQueries('inventoryItems');
+        queryClient.invalidateQueries('inventoryDashboard');
+        handleClose();
+        if (onSuccess) onSuccess();
+      },
+      onError: (error) => {
+        enqueueSnackbar(
+          `Failed to create item: ${error.response?.data?.detail || error.message}`,
+          { variant: 'error' }
+        );
+      },
+    }
+  );
+
+  const handleChange = (field) => (event) => {
+    setFormData({ ...formData, [field]: event.target.value });
+    // Clear error for this field
+    if (errors[field]) {
+      setErrors({ ...errors, [field]: null });
+    }
+  };
+
+  const validate = () => {
+    const newErrors = {};
+
+    if (!formData.item_name.trim()) {
+      newErrors.item_name = 'Item name is required';
+    }
+
+    if (!formData.unit.trim()) {
+      newErrors.unit = 'Unit is required';
+    }
+
+    if (formData.reorder_threshold && Number(formData.reorder_threshold) < 0) {
+      newErrors.reorder_threshold = 'Must be 0 or greater';
+    }
+
+    if (formData.min_stock_level && Number(formData.min_stock_level) < 0) {
+      newErrors.min_stock_level = 'Must be 0 or greater';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = () => {
+    if (!validate()) return;
+
+    // Prepare data for API
+    const submitData = {
+      item_name: formData.item_name.trim(),
+      unit: formData.unit.trim(),
+      reorder_threshold: formData.reorder_threshold || '0',
+      min_stock_level: formData.min_stock_level || '0',
+    };
+
+    // Add optional fields if provided
+    if (formData.sku?.trim()) submitData.sku = formData.sku.trim();
+    if (formData.category?.trim()) submitData.category = formData.category.trim();
+    if (formData.default_supplier_id) submitData.default_supplier_id = Number(formData.default_supplier_id);
+
+    createItemMutation.mutate(submitData);
+  };
+
+  const handleClose = () => {
+    setFormData({
+      item_name: '',
+      sku: '',
+      category: '',
+      unit: '',
+      default_supplier_id: '',
+      reorder_threshold: '0',
+      min_stock_level: '0',
+    });
+    setErrors({});
+    onClose();
+  };
+
+  return (
+    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+      <DialogTitle>Add New Inventory Item</DialogTitle>
+      <DialogContent>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
+          <TextField
+            label="Item Name"
+            required
+            fullWidth
+            value={formData.item_name}
+            onChange={handleChange('item_name')}
+            error={!!errors.item_name}
+            helperText={errors.item_name}
+            placeholder="e.g., Fish Feed Premium"
+          />
+
+          <TextField
+            label="SKU"
+            fullWidth
+            value={formData.sku}
+            onChange={handleChange('sku')}
+            placeholder="e.g., FF-001"
+            helperText="Stock Keeping Unit (optional)"
+          />
+
+          <FormControl fullWidth>
+            <InputLabel>Category</InputLabel>
+            <Select
+              value={formData.category}
+              onChange={handleChange('category')}
+              label="Category"
+            >
+              <MenuItem value="">
+                <em>None</em>
+              </MenuItem>
+              {categoriesData?.categories?.map((cat) => (
+                <MenuItem key={cat.category} value={cat.category}>
+                  {cat.category}
+                </MenuItem>
+              ))}
+              {/* Allow custom category entry */}
+              <MenuItem value="__custom__" disabled>
+                <em>Or enter custom below</em>
+              </MenuItem>
+            </Select>
+            <FormHelperText>Select from existing or enter custom category</FormHelperText>
+          </FormControl>
+
+          <TextField
+            label="Custom Category"
+            fullWidth
+            value={formData.category && !categoriesData?.categories?.some(c => c.category === formData.category) ? formData.category : ''}
+            onChange={handleChange('category')}
+            placeholder="Enter custom category"
+            helperText="If category not in dropdown, type here"
+          />
+
+          <TextField
+            label="Unit of Measurement"
+            required
+            fullWidth
+            value={formData.unit}
+            onChange={handleChange('unit')}
+            error={!!errors.unit}
+            helperText={errors.unit || 'e.g., kg, liters, pieces, bags'}
+            placeholder="e.g., kg"
+          />
+
+          <FormControl fullWidth>
+            <InputLabel>Default Supplier</InputLabel>
+            <Select
+              value={formData.default_supplier_id}
+              onChange={handleChange('default_supplier_id')}
+              label="Default Supplier"
+            >
+              <MenuItem value="">
+                <em>None</em>
+              </MenuItem>
+              {suppliersData?.suppliers?.map((supplier) => (
+                <MenuItem key={supplier.id} value={supplier.id}>
+                  {supplier.supplier_name}
+                </MenuItem>
+              ))}
+            </Select>
+            <FormHelperText>Optional - Preferred supplier for this item</FormHelperText>
+          </FormControl>
+
+          <TextField
+            label="Reorder Threshold"
+            type="number"
+            fullWidth
+            value={formData.reorder_threshold}
+            onChange={handleChange('reorder_threshold')}
+            error={!!errors.reorder_threshold}
+            helperText={errors.reorder_threshold || 'Alert when stock falls below this level'}
+            inputProps={{ min: 0, step: 0.01 }}
+          />
+
+          <TextField
+            label="Minimum Stock Level"
+            type="number"
+            fullWidth
+            value={formData.min_stock_level}
+            onChange={handleChange('min_stock_level')}
+            error={!!errors.min_stock_level}
+            helperText={errors.min_stock_level || 'Ideal minimum quantity to maintain'}
+            inputProps={{ min: 0, step: 0.01 }}
+          />
+        </Box>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={handleClose} disabled={createItemMutation.isLoading}>
+          Cancel
+        </Button>
+        <Button
+          onClick={handleSubmit}
+          variant="contained"
+          disabled={createItemMutation.isLoading}
+          startIcon={createItemMutation.isLoading ? <CircularProgress size={20} /> : <AddIcon />}
+        >
+          Create Item
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+}
 
 // Items Page
 function ItemsPage() {
@@ -71,25 +317,10 @@ function ItemsPage() {
       </Box>
 
       {/* Add Item Dialog */}
-      <Dialog open={openAddDialog} onClose={() => setOpenAddDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Add New Item</DialogTitle>
-        <DialogContent>
-          <Alert severity="info" sx={{ mt: 2 }}>
-            Item creation form will be implemented here. This will include fields for:
-            <ul>
-              <li>Item Name</li>
-              <li>SKU</li>
-              <li>Category</li>
-              <li>Unit</li>
-              <li>Reorder Threshold</li>
-              <li>And more...</li>
-            </ul>
-          </Alert>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenAddDialog(false)}>Close</Button>
-        </DialogActions>
-      </Dialog>
+      <AddItemDialog
+        open={openAddDialog}
+        onClose={() => setOpenAddDialog(false)}
+      />
 
       <Card>
         <CardContent>
