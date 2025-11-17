@@ -21,7 +21,7 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
-import { SnackbarProvider } from 'notistack';
+import { SnackbarProvider, useSnackbar } from 'notistack';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { IconButton } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
@@ -40,6 +40,22 @@ const queryClient = new QueryClient({
   },
 });
 
+// Close button component that uses notistack's closeSnackbar
+function SnackbarCloseButton({ snackbarKey }) {
+  const { closeSnackbar } = useSnackbar();
+
+  return (
+    <IconButton
+      size="small"
+      aria-label="close"
+      color="inherit"
+      onClick={() => closeSnackbar(snackbarKey)}
+    >
+      <CloseIcon fontSize="small" />
+    </IconButton>
+  );
+}
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
@@ -50,20 +66,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
             maxSnack={3}
             anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
             autoHideDuration={3000}
-            action={(snackbarKey) => (
-              <IconButton
-                size="small"
-                aria-label="close"
-                color="inherit"
-                onClick={() => {
-                  // Close the snackbar
-                  const closeSnackbar = window.closeSnackbar || (() => {});
-                  closeSnackbar(snackbarKey);
-                }}
-              >
-                <CloseIcon fontSize="small" />
-              </IconButton>
-            )}
+            action={(snackbarKey) => <SnackbarCloseButton snackbarKey={snackbarKey} />}
           >
             <App />
           </SnackbarProvider>
