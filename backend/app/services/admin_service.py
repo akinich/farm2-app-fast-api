@@ -2,11 +2,19 @@
 ================================================================================
 Farm Management System - Admin Service Layer
 ================================================================================
-Version: 1.2.0
+Version: 1.3.0
 Last Updated: 2025-11-17
 
 Changelog:
 ----------
+v1.3.0 (2025-11-17):
+  - Implemented create_user() with password_hash support
+  - Added hierarchical module support in get_modules_list()
+  - Now returns parent_module_id in module queries
+  - User creation now works directly from Admin Panel
+  - Email uniqueness validation added
+  - Role validation added before user creation
+
 v1.2.0 (2025-11-17):
   - Added UUID to string conversion in get_users_list()
   - Added UUID to string conversion in update_user()
@@ -34,6 +42,7 @@ from typing import Optional, List, Dict
 from fastapi import HTTPException, status
 import logging
 import math
+import uuid
 
 from app.database import get_db, fetch_one, fetch_all, execute_query
 from app.auth.password import generate_temporary_password, hash_password
@@ -143,11 +152,6 @@ async def create_user(request: CreateUserRequest, created_by_id: str) -> Dict:
     """
     Create new user with temporary password.
 
-    NOTE: User creation now requires manual Supabase UI setup since we removed the Supabase client.
-    This function creates the user_profile record only.
-
-    TODO: Implement full user creation with password_hash column or restore Supabase client for admin operations
-
     Args:
         request: CreateUserRequest with email, full_name, role_id
         created_by_id: Admin user ID creating this user
@@ -156,35 +160,57 @@ async def create_user(request: CreateUserRequest, created_by_id: str) -> Dict:
         Dict with user info and temporary_password
 
     Raises:
-        HTTPException: If user creation fails
+        HTTPException: If user creation fails or email already exists
     """
     try:
         # Generate temporary password
         temp_password = generate_temporary_password()
+        password_hash_value = hash_password(temp_password)
+        user_id = str(uuid.uuid4())
 
-        # For now, instruct admin to create user in Supabase UI first
-        # Then we create the profile here
-        raise HTTPException(
-            status_code=status.HTTP_501_NOT_IMPLEMENTED,
-            detail="User creation requires Supabase UI. Please:\n1. Create user in Supabase Auth\n2. Run SQL: INSERT INTO user_profiles (id, full_name, role_id, is_active) VALUES ('USER_UID', 'Name', ROLE_ID, TRUE)",
+        # Check if email already exists
+        existing_user = await fetch_one(
+            "SELECT id FROM auth.users WHERE email = $1",
+            request.email
+        )
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"User with email {request.email} already exists"
+            )
+
+        # Check if role exists
+        role_exists = await fetch_one(
+            "SELECT id FROM roles WHERE id = $1",
+            request.role_id
+        )
+        if not role_exists:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Role ID {request.role_id} does not exist"
+            )
+
+        # Insert into auth.users
+        await execute_query(
+            "INSERT INTO auth.users (id, email) VALUES ($1, $2)",
+            user_id,
+            request.email
         )
 
-        # TODO: Once password_hash column is added, implement like this:
-        # import uuid
-        # user_id = str(uuid.uuid4())
-        # password_hash = hash_password(temp_password)
-        #
-        # # Insert into auth.users (if we have permission)
-        # await execute_query("INSERT INTO auth.users (id, email) VALUES ($1, $2)", user_id, request.email)
-        #
-        # # Create user profile
-        # await execute_query(
-        #     "INSERT INTO user_profiles (id, full_name, role_id, is_active, password_hash) VALUES ($1, $2, $3, TRUE, $4)",
-        #     user_id, request.full_name, request.role_id, password_hash
-        # )
+        # Create user profile with password_hash
+        await execute_query(
+            """
+            INSERT INTO user_profiles (id, full_name, role_id, is_active, password_hash)
+            VALUES ($1, $2, $3, TRUE, $4)
+            """,
+            user_id,
+            request.full_name,
+            request.role_id,
+            password_hash_value
+        )
 
         # Fetch created user with role info
-        user = await fetch_one(
+        user_raw = await fetch_one(
             """
             SELECT
                 up.id,
@@ -202,9 +228,13 @@ async def create_user(request: CreateUserRequest, created_by_id: str) -> Dict:
             user_id,
         )
 
+        # Convert UUID to string
+        user = dict(user_raw)
+        user['id'] = str(user['id'])
+
         # Log activity
         admin = await fetch_one(
-            "SELECT email, r.role_name FROM user_profiles up LEFT JOIN roles r ON r.id = up.role_id WHERE up.id = $1",
+            "SELECT au.email, r.role_name FROM user_profiles up JOIN auth.users au ON au.id = up.id LEFT JOIN roles r ON r.id = up.role_id WHERE up.id = $1",
             created_by_id,
         )
         await log_activity(
@@ -214,15 +244,17 @@ async def create_user(request: CreateUserRequest, created_by_id: str) -> Dict:
             action_type="create_user",
             description=f"Created new user: {request.email}",
             module_key="admin",
-            metadata={"new_user_id": str(user_id), "email": request.email},
+            metadata={"new_user_id": user_id, "email": request.email},
         )
+
+        logger.info(f"User created successfully: {request.email} (ID: {user_id})")
 
         return {"user": user, "temporary_password": temp_password}
 
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Create user error: {e}")
+        logger.error(f"Create user error: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to create user: {str(e)}",
@@ -403,14 +435,16 @@ async def get_roles_list() -> List[Dict]:
 
 
 async def get_modules_list() -> List[Dict]:
-    """Get all modules"""
-    modules = await fetch_all(
+    """Get all modules with hierarchical structure"""
+    modules_raw = await fetch_all(
         """
-        SELECT id, module_key, module_name, description, icon, display_order, is_active
+        SELECT id, module_key, module_name, description, icon, display_order, is_active, parent_module_id
         FROM modules
-        ORDER BY display_order
+        ORDER BY parent_module_id NULLS FIRST, display_order
         """
     )
+    # Convert to list of dicts
+    modules = [dict(m) for m in modules_raw]
     return modules
 
 

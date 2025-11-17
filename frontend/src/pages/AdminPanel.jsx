@@ -1,10 +1,18 @@
 /**
  * Admin Panel - User Management, Modules, Permissions & Activity Logs
- * Version: 1.1.0
+ * Version: 1.2.0
  * Last Updated: 2025-11-17
  *
  * Changelog:
  * ----------
+ * v1.2.0 (2025-11-17):
+ *   - Implemented Create User dialog with full form functionality
+ *   - Added email validation and role selection
+ *   - Shows temporary password to admin after user creation
+ *   - User can be created directly from Admin Panel (no Supabase UI needed)
+ *   - Auto-refreshes user list after creation
+ *   - Added proper form validation and error handling
+ *
  * v1.1.0 (2025-11-17):
  *   - Added Module Management page to view all system modules
  *   - Added User Permissions dialog with checkbox interface
@@ -42,6 +50,12 @@ import {
   Checkbox,
   FormControlLabel,
   Grid,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  FormHelperText,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -52,11 +66,189 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { adminAPI } from '../api';
 import { useSnackbar } from 'notistack';
 
+// Create User Dialog Component
+function CreateUserDialog({ open, onClose }) {
+  const { enqueueSnackbar } = useSnackbar();
+  const queryClient = useQueryClient();
+
+  const [formData, setFormData] = useState({
+    email: '',
+    full_name: '',
+    role_id: 2, // Default to regular user
+  });
+
+  const [errors, setErrors] = useState({});
+  const [tempPassword, setTempPassword] = useState(null);
+
+  // Fetch roles for dropdown
+  const { data: rolesData } = useQuery('adminRoles', () => adminAPI.getRoles(), {
+    enabled: open,
+  });
+
+  const createUserMutation = useMutation((data) => adminAPI.createUser(data), {
+    onSuccess: (response) => {
+      enqueueSnackbar('User created successfully!', { variant: 'success' });
+      setTempPassword(response.temporary_password);
+      queryClient.invalidateQueries('adminUsers');
+      // Don't close immediately - show password first
+    },
+    onError: (error) => {
+      enqueueSnackbar(
+        `Failed to create user: ${error.response?.data?.detail || error.message}`,
+        { variant: 'error' }
+      );
+    },
+  });
+
+  const handleChange = (field) => (event) => {
+    setFormData({ ...formData, [field]: event.target.value });
+    if (errors[field]) {
+      setErrors({ ...errors, [field]: null });
+    }
+  };
+
+  const validate = () => {
+    const newErrors = {};
+
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = 'Invalid email format';
+    }
+
+    if (!formData.full_name.trim()) {
+      newErrors.full_name = 'Full name is required';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = () => {
+    if (!validate()) return;
+    createUserMutation.mutate(formData);
+  };
+
+  const handleClose = () => {
+    setFormData({ email: '', full_name: '', role_id: 2 });
+    setErrors({});
+    setTempPassword(null);
+    onClose();
+  };
+
+  return (
+    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+      <DialogTitle>
+        {tempPassword ? 'User Created Successfully' : 'Create New User'}
+      </DialogTitle>
+      <DialogContent>
+        {!tempPassword ? (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
+            <TextField
+              label="Email Address"
+              type="email"
+              required
+              fullWidth
+              value={formData.email}
+              onChange={handleChange('email')}
+              error={!!errors.email}
+              helperText={errors.email}
+              placeholder="user@example.com"
+              autoFocus
+            />
+
+            <TextField
+              label="Full Name"
+              required
+              fullWidth
+              value={formData.full_name}
+              onChange={handleChange('full_name')}
+              error={!!errors.full_name}
+              helperText={errors.full_name}
+              placeholder="John Doe"
+            />
+
+            <FormControl fullWidth required>
+              <InputLabel>Role</InputLabel>
+              <Select
+                value={formData.role_id}
+                onChange={handleChange('role_id')}
+                label="Role"
+              >
+                {rolesData?.roles?.map((role) => (
+                  <MenuItem key={role.id} value={role.id}>
+                    {role.role_name}
+                  </MenuItem>
+                ))}
+              </Select>
+              <FormHelperText>Assign a role to this user</FormHelperText>
+            </FormControl>
+          </Box>
+        ) : (
+          <Box>
+            <Alert severity="success" sx={{ mb: 2 }}>
+              User account created successfully!
+            </Alert>
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              <Typography variant="subtitle2" gutterBottom>
+                <strong>Temporary Password (share securely with user):</strong>
+              </Typography>
+              <Typography
+                variant="h6"
+                sx={{
+                  fontFamily: 'monospace',
+                  bgcolor: 'background.paper',
+                  p: 1.5,
+                  borderRadius: 1,
+                  mt: 1,
+                  userSelect: 'all',
+                }}
+              >
+                {tempPassword}
+              </Typography>
+              <Typography variant="caption" display="block" sx={{ mt: 1 }}>
+                The user should change this password after first login.
+              </Typography>
+            </Alert>
+            <Typography variant="body2" color="text.secondary">
+              Email: <strong>{formData.email}</strong>
+              <br />
+              Name: <strong>{formData.full_name}</strong>
+            </Typography>
+          </Box>
+        )}
+      </DialogContent>
+      <DialogActions>
+        {!tempPassword ? (
+          <>
+            <Button onClick={handleClose} disabled={createUserMutation.isLoading}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSubmit}
+              variant="contained"
+              disabled={createUserMutation.isLoading}
+              startIcon={createUserMutation.isLoading ? <CircularProgress size={20} /> : <AddIcon />}
+            >
+              Create User
+            </Button>
+          </>
+        ) : (
+          <Button onClick={handleClose} variant="contained">
+            Done
+          </Button>
+        )}
+      </DialogActions>
+    </Dialog>
+  );
+}
+
 // User Management Page
 function UserManagementPage() {
   const { data, isLoading, error } = useQuery('adminUsers', () => adminAPI.getUsers());
   const [selectedUser, setSelectedUser] = useState(null);
   const [permissionsDialogOpen, setPermissionsDialogOpen] = useState(false);
+  const [createUserDialogOpen, setCreateUserDialogOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -81,8 +273,12 @@ function UserManagementPage() {
         <Typography variant="h5" fontWeight="bold">
           User Management
         </Typography>
-        <Button variant="contained" startIcon={<AddIcon />} disabled>
-          Add User (Use Supabase UI)
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={() => setCreateUserDialogOpen(true)}
+        >
+          Add User
         </Button>
       </Box>
 
@@ -136,6 +332,12 @@ function UserManagementPage() {
           </TableContainer>
         </CardContent>
       </Card>
+
+      {/* Create User Dialog */}
+      <CreateUserDialog
+        open={createUserDialogOpen}
+        onClose={() => setCreateUserDialogOpen(false)}
+      />
 
       {/* Permissions Dialog */}
       {selectedUser && (
