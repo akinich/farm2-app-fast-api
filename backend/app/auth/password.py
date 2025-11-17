@@ -2,11 +2,17 @@
 ================================================================================
 Farm Management System - Password Hashing & Verification
 ================================================================================
-Version: 1.0.0
+Version: 1.1.0
 Last Updated: 2025-11-17
 
 Changelog:
 ----------
+v1.1.0 (2025-11-17):
+  - Fixed generate_temporary_password() to enforce 72 byte bcrypt limit
+  - Reduced default password length to 16 characters (safe for bcrypt)
+  - Added explicit byte length check and truncation
+  - Ensures compatibility with bcrypt's maximum password length
+
 v1.0.0 (2025-11-17):
   - Initial password management utilities
   - Bcrypt hashing with configurable rounds
@@ -65,17 +71,25 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 # ============================================================================
 
 
-def generate_temporary_password(length: int = 12) -> str:
+def generate_temporary_password(length: int = 16) -> str:
     """
     Generate a secure temporary password.
 
+    Bcrypt has a 72 byte maximum password length. To ensure compatibility,
+    this function limits passwords to 16 ASCII characters (well under 72 bytes).
+
     Args:
-        length: Password length (default 12)
+        length: Password length (default 16, max 70 for bcrypt safety)
 
     Returns:
-        Randomly generated password string
+        Randomly generated password string (ASCII only, safe for bcrypt)
     """
-    # Character sets
+    # Enforce maximum length for bcrypt compatibility (72 bytes = ~72 ASCII chars)
+    # Use 70 as safe maximum to account for any edge cases
+    if length > 70:
+        length = 70
+
+    # Character sets (all ASCII, 1 byte per character)
     uppercase = string.ascii_uppercase
     lowercase = string.ascii_lowercase
     digits = string.digits

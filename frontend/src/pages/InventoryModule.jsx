@@ -1,10 +1,16 @@
 /**
  * Inventory Module - Items, Stock, Purchase Orders, Alerts
- * Version: 1.2.0
+ * Version: 1.3.0
  * Last Updated: 2025-11-17
  *
  * Changelog:
  * ----------
+ * v1.3.0 (2025-11-17):
+ *   - Added placeholder routes for all new sub-modules
+ *   - Added PlaceholderPage component for Coming Soon pages
+ *   - New routes: current-stock, adjustments, history, categories, suppliers, analytics
+ *   - All sub-modules now have proper route handling
+ *
  * v1.2.0 (2025-11-17):
  *   - Implemented complete Add Item form with validation
  *   - Added category and supplier dropdown selections
@@ -695,6 +701,30 @@ function StockOperationsPage() {
 }
 
 // Main Inventory Module Component
+// Placeholder Page Component
+function PlaceholderPage({ title, description, icon }) {
+  return (
+    <Box>
+      <Typography variant="h5" fontWeight="bold" gutterBottom>
+        {title}
+      </Typography>
+      <Card sx={{ mt: 3, textAlign: 'center', py: 8 }}>
+        <CardContent>
+          <Typography variant="h1" sx={{ mb: 2, opacity: 0.3 }}>
+            {icon || '🚧'}
+          </Typography>
+          <Typography variant="h6" color="text.secondary" gutterBottom>
+            Coming Soon
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            {description || 'This feature is currently under development.'}
+          </Typography>
+        </CardContent>
+      </Card>
+    </Box>
+  );
+}
+
 export default function InventoryModule() {
   return (
     <Routes>
@@ -703,6 +733,68 @@ export default function InventoryModule() {
       <Route path="stock" element={<StockOperationsPage />} />
       <Route path="purchase-orders" element={<PurchaseOrdersPage />} />
       <Route path="alerts" element={<AlertsPage />} />
+
+      {/* Placeholder routes for new sub-modules */}
+      <Route
+        path="current-stock"
+        element={
+          <PlaceholderPage
+            title="Current Stock"
+            description="View real-time stock levels and availability across all items."
+            icon="📦"
+          />
+        }
+      />
+      <Route
+        path="adjustments"
+        element={
+          <PlaceholderPage
+            title="Stock Adjustments"
+            description="Record stock adjustments and corrections for inventory discrepancies."
+            icon="⚖️"
+          />
+        }
+      />
+      <Route
+        path="history"
+        element={
+          <PlaceholderPage
+            title="Transaction History"
+            description="View complete audit trail of all inventory transactions."
+            icon="📜"
+          />
+        }
+      />
+      <Route
+        path="categories"
+        element={
+          <PlaceholderPage
+            title="Manage Categories"
+            description="Create and manage item categories for better organization."
+            icon="🏷️"
+          />
+        }
+      />
+      <Route
+        path="suppliers"
+        element={
+          <PlaceholderPage
+            title="Manage Suppliers"
+            description="Manage supplier information, contacts, and purchase history."
+            icon="🏢"
+          />
+        }
+      />
+      <Route
+        path="analytics"
+        element={
+          <PlaceholderPage
+            title="Analytics & Reports"
+            description="View detailed reports and analytics for inventory insights."
+            icon="📈"
+          />
+        }
+      />
     </Routes>
   );
 }
