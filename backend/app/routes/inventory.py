@@ -2,11 +2,17 @@
 ================================================================================
 Farm Management System - Inventory Module Routes
 ================================================================================
-Version: 1.0.0
-Last Updated: 2025-11-17
+Version: 1.1.0
+Last Updated: 2025-11-18
 
 Changelog:
 ----------
+v1.1.0 (2025-11-18):
+  - Added DELETE endpoint for suppliers (soft delete)
+  - Added POST/PUT/DELETE endpoints for categories (full CRUD)
+  - Added stock adjustments endpoints (POST create, GET list)
+  - Enhanced inventory management capabilities
+
 v1.0.0 (2025-11-17):
   - Initial inventory endpoints
   - Item master CRUD
@@ -153,6 +159,20 @@ async def update_supplier(
     return supplier
 
 
+@router.delete(
+    "/suppliers/{supplier_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete Supplier",
+    description="Delete/deactivate supplier",
+)
+async def delete_supplier(
+    supplier_id: int,
+    user: CurrentUser = Depends(require_module_access("inventory")),
+):
+    """Delete supplier (soft delete)"""
+    await inventory_service.delete_supplier(supplier_id)
+
+
 # ============================================================================
 # CATEGORY ENDPOINTS
 # ============================================================================
@@ -170,6 +190,52 @@ async def list_categories(
     """List all categories"""
     categories = await inventory_service.get_categories_list()
     return {"categories": categories}
+
+
+@router.post(
+    "/categories",
+    response_model=CategoryItem,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create Category",
+    description="Create new inventory category",
+)
+async def create_category(
+    request: CreateCategoryRequest,
+    user: CurrentUser = Depends(require_module_access("inventory")),
+):
+    """Create new category"""
+    category = await inventory_service.create_category(request)
+    return category
+
+
+@router.put(
+    "/categories/{category_id}",
+    response_model=CategoryItem,
+    summary="Update Category",
+    description="Update inventory category",
+)
+async def update_category(
+    category_id: int,
+    request: UpdateCategoryRequest,
+    user: CurrentUser = Depends(require_module_access("inventory")),
+):
+    """Update category"""
+    category = await inventory_service.update_category(category_id, request)
+    return category
+
+
+@router.delete(
+    "/categories/{category_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete Category",
+    description="Delete inventory category",
+)
+async def delete_category(
+    category_id: int,
+    user: CurrentUser = Depends(require_module_access("inventory")),
+):
+    """Delete category"""
+    await inventory_service.delete_category(category_id)
 
 
 # ============================================================================
@@ -269,6 +335,46 @@ async def update_purchase_order(
     """Update purchase order"""
     po = await inventory_service.update_purchase_order_status(po_id, request)
     return po
+
+
+# ============================================================================
+# STOCK ADJUSTMENTS
+# ============================================================================
+
+
+@router.post(
+    "/stock/adjust",
+    status_code=status.HTTP_201_CREATED,
+    summary="Create Stock Adjustment",
+    description="Create manual stock adjustment (increase, decrease, or recount)",
+)
+async def create_stock_adjustment(
+    request: CreateAdjustmentRequest,
+    user: CurrentUser = Depends(require_module_access("inventory")),
+):
+    """Create stock adjustment"""
+    result = await inventory_service.create_stock_adjustment(request, user.id)
+    return result
+
+
+@router.get(
+    "/stock/adjustments",
+    response_model=AdjustmentsListResponse,
+    summary="List Stock Adjustments",
+    description="Get stock adjustment history",
+)
+async def list_stock_adjustments(
+    item_id: Optional[int] = Query(None, description="Filter by item ID"),
+    days_back: int = Query(30, ge=1, le=365, description="Days back to fetch"),
+    page: int = Query(1, ge=1),
+    limit: int = Query(50, ge=1, le=500),
+    user: CurrentUser = Depends(require_module_access("inventory")),
+):
+    """Get stock adjustment history"""
+    result = await inventory_service.get_stock_adjustments_list(
+        item_id=item_id, days_back=days_back, page=page, limit=limit
+    )
+    return result
 
 
 # ============================================================================

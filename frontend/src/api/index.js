@@ -122,6 +122,16 @@ export const inventoryAPI = {
     return response.data;
   },
 
+  adjustStock: async (data) => {
+    const response = await apiClient.post('/inventory/stock/adjust', data);
+    return response.data;
+  },
+
+  getStockAdjustments: async (params = {}) => {
+    const response = await apiClient.get('/inventory/stock/adjustments', { params });
+    return response.data;
+  },
+
   // Purchase Orders
   getPurchaseOrders: async (params = {}) => {
     const response = await apiClient.get('/inventory/purchase-orders', { params });
@@ -154,9 +164,29 @@ export const inventoryAPI = {
     return response.data;
   },
 
+  deleteSupplier: async (supplierId) => {
+    const response = await apiClient.delete(`/inventory/suppliers/${supplierId}`);
+    return response.data;
+  },
+
   // Categories
   getCategories: async () => {
     const response = await apiClient.get('/inventory/categories');
+    return response.data;
+  },
+
+  createCategory: async (data) => {
+    const response = await apiClient.post('/inventory/categories', data);
+    return response.data;
+  },
+
+  updateCategory: async (categoryId, data) => {
+    const response = await apiClient.put(`/inventory/categories/${categoryId}`, data);
+    return response.data;
+  },
+
+  deleteCategory: async (categoryId) => {
+    const response = await apiClient.delete(`/inventory/categories/${categoryId}`);
     return response.data;
   },
 
