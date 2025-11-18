@@ -347,6 +347,7 @@ const BatchFormDialog = ({ open, onClose, onSave, tanks, isSubmitting, error }) 
 
 // Main Component
 export default function BioflocBatches() {
+  console.log('BioflocBatches - VERSION: v1.1-FIXED-480');
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);

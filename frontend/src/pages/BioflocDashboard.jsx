@@ -85,6 +85,7 @@ const AlertCard = ({ title, count, severity, icon: Icon }) => (
 );
 
 export default function BioflocDashboard() {
+  console.log('BioflocDashboard - VERSION: v1.1-FIXED-175');
   const navigate = useNavigate();
 
   const { data, isLoading, error } = useQuery(
