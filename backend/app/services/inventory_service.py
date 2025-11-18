@@ -2,11 +2,17 @@
 ================================================================================
 Farm Management System - Inventory Service Layer
 ================================================================================
-Version: 1.1.0
-Last Updated: 2025-11-17
+Version: 1.2.0
+Last Updated: 2025-11-18
 
 Changelog:
 ----------
+v1.2.0 (2025-11-18):
+  - Added delete_supplier() function for soft delete
+  - Added create_category(), update_category(), delete_category() functions
+  - Added create_stock_adjustment(), get_stock_adjustments_list() functions
+  - Enhanced category and stock adjustment management
+
 v1.1.0 (2025-11-17):
   - CRITICAL: Fixed transaction blocks to use transaction-aware helper functions
   - Updated add_stock() to properly use DatabaseTransaction with conn parameter
@@ -334,6 +340,17 @@ async def update_supplier(supplier_id: int, request: UpdateSupplierRequest) -> D
     return supplier
 
 
+async def delete_supplier(supplier_id: int) -> None:
+    """Delete supplier (soft delete)"""
+    result = await execute_query(
+        "UPDATE suppliers SET is_active = FALSE WHERE id = $1", supplier_id
+    )
+    if not result:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Supplier not found"
+        )
+
+
 # ============================================================================
 # CATEGORY OPERATIONS
 # ============================================================================
@@ -345,6 +362,114 @@ async def get_categories_list() -> List[Dict]:
         "SELECT id, category_name, description, created_at FROM inventory_categories ORDER BY category_name"
     )
     return categories
+
+
+async def create_category(request: CreateCategoryRequest) -> Dict:
+    """Create new category"""
+    # Check if category already exists
+    existing = await fetch_one(
+        "SELECT id FROM inventory_categories WHERE category_name = $1",
+        request.category_name,
+    )
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Category '{request.category_name}' already exists",
+        )
+
+    category_id = await execute_query(
+        """
+        INSERT INTO inventory_categories (category_name, description)
+        VALUES ($1, $2)
+        RETURNING id
+        """,
+        request.category_name,
+        request.description,
+    )
+
+    category = await fetch_one(
+        "SELECT * FROM inventory_categories WHERE id = $1", category_id
+    )
+    return category
+
+
+async def update_category(category_id: int, request: UpdateCategoryRequest) -> Dict:
+    """Update category"""
+    # Check if exists
+    existing = await fetch_one(
+        "SELECT id FROM inventory_categories WHERE id = $1", category_id
+    )
+    if not existing:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Category not found"
+        )
+
+    # Build update query
+    update_fields = []
+    params = []
+    param_count = 1
+
+    if request.category_name is not None:
+        # Check if new name already exists
+        name_exists = await fetch_one(
+            "SELECT id FROM inventory_categories WHERE category_name = $1 AND id != $2",
+            request.category_name,
+            category_id,
+        )
+        if name_exists:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Category '{request.category_name}' already exists",
+            )
+        update_fields.append(f"category_name = ${param_count}")
+        params.append(request.category_name)
+        param_count += 1
+
+    if request.description is not None:
+        update_fields.append(f"description = ${param_count}")
+        params.append(request.description)
+        param_count += 1
+
+    if not update_fields:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="No fields to update"
+        )
+
+    params.append(category_id)
+
+    query = f"""
+        UPDATE inventory_categories
+        SET {', '.join(update_fields)}
+        WHERE id = ${param_count}
+    """
+    await execute_query(query, *params)
+
+    category = await fetch_one(
+        "SELECT * FROM inventory_categories WHERE id = $1", category_id
+    )
+    return category
+
+
+async def delete_category(category_id: int) -> None:
+    """Delete category"""
+    # Check if category is in use
+    items_using = await fetch_one(
+        "SELECT COUNT(*) as count FROM item_master WHERE category = (SELECT category_name FROM inventory_categories WHERE id = $1)",
+        category_id,
+    )
+    if items_using and items_using["count"] > 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot delete category: {items_using['count']} items are using it",
+        )
+
+    result = await execute_query(
+        "DELETE FROM inventory_categories WHERE id = $1", category_id
+    )
+    if not result:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Category not found"
+        )
 
 
 # ============================================================================
@@ -751,6 +876,164 @@ async def update_purchase_order_status(po_id: int, request: UpdatePORequest) -> 
     )
 
     return po
+
+
+# ============================================================================
+# STOCK ADJUSTMENTS
+# ============================================================================
+
+
+async def create_stock_adjustment(
+    request: CreateAdjustmentRequest, user_id: str
+) -> Dict:
+    """Create stock adjustment"""
+    # Get current item quantity
+    item = await fetch_one(
+        "SELECT id, item_name, current_qty FROM item_master WHERE id = $1",
+        request.item_master_id,
+    )
+    if not item:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Item not found"
+        )
+
+    previous_qty = Decimal(str(item["current_qty"]))
+
+    # Calculate new quantity based on adjustment type
+    if request.adjustment_type == "recount":
+        # For recount, quantity_change is the actual new quantity
+        new_qty = request.quantity_change
+        quantity_change = new_qty - previous_qty
+    elif request.adjustment_type == "increase":
+        quantity_change = abs(request.quantity_change)
+        new_qty = previous_qty + quantity_change
+    else:  # decrease
+        quantity_change = -abs(request.quantity_change)
+        new_qty = previous_qty + quantity_change
+
+    # Ensure new quantity is not negative
+    if new_qty < 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Adjustment would result in negative stock ({new_qty})",
+        )
+
+    async with DatabaseTransaction() as conn:
+        # Create adjustment record
+        adjustment_id = await execute_query_tx(
+            conn,
+            """
+            INSERT INTO stock_adjustments (
+                item_master_id, adjustment_type, quantity_change,
+                previous_qty, new_qty, reason, notes, adjusted_by
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            RETURNING id
+            """,
+            request.item_master_id,
+            request.adjustment_type,
+            quantity_change,
+            previous_qty,
+            new_qty,
+            request.reason,
+            request.notes,
+            user_id,
+        )
+
+        # Update item current_qty
+        await execute_query_tx(
+            conn,
+            "UPDATE item_master SET current_qty = $1, updated_at = NOW() WHERE id = $2",
+            new_qty,
+            request.item_master_id,
+        )
+
+        # Log transaction
+        await execute_query_tx(
+            conn,
+            """
+            INSERT INTO inventory_transactions (
+                item_master_id, transaction_type, quantity_change,
+                new_balance, user_id, notes
+            )
+            VALUES ($1, 'adjustment', $2, $3, $4, $5)
+            """,
+            request.item_master_id,
+            quantity_change,
+            new_qty,
+            user_id,
+            f"{request.adjustment_type}: {request.reason}",
+        )
+
+    return {
+        "success": True,
+        "message": f"Stock adjusted successfully",
+        "adjustment_id": adjustment_id,
+        "previous_qty": previous_qty,
+        "new_qty": new_qty,
+        "quantity_change": quantity_change,
+    }
+
+
+async def get_stock_adjustments_list(
+    item_id: Optional[int] = None,
+    days_back: int = 30,
+    page: int = 1,
+    limit: int = 50,
+) -> Dict:
+    """Get stock adjustments list"""
+    where_conditions = [
+        f"sa.adjustment_date >= NOW() - INTERVAL '{days_back} days'"
+    ]
+    params = []
+    param_count = 1
+
+    if item_id:
+        where_conditions.append(f"sa.item_master_id = ${param_count}")
+        params.append(item_id)
+        param_count += 1
+
+    where_clause = f"WHERE {' AND '.join(where_conditions)}"
+
+    # Count
+    count_query = f"SELECT COUNT(*) as total FROM stock_adjustments sa {where_clause}"
+    count_result = await fetch_one(count_query, *params)
+    total = count_result["total"] if count_result else 0
+
+    # Get adjustments
+    offset = (page - 1) * limit
+    adjustments_query = f"""
+        SELECT
+            sa.id,
+            sa.item_master_id,
+            im.item_name,
+            im.sku,
+            im.unit,
+            sa.adjustment_type,
+            sa.quantity_change,
+            sa.previous_qty,
+            sa.new_qty,
+            sa.reason,
+            sa.notes,
+            sa.adjusted_by,
+            up.full_name as adjusted_by_name,
+            sa.adjustment_date
+        FROM stock_adjustments sa
+        JOIN item_master im ON im.id = sa.item_master_id
+        LEFT JOIN user_profiles up ON up.id = sa.adjusted_by
+        {where_clause}
+        ORDER BY sa.adjustment_date DESC
+        LIMIT ${param_count} OFFSET ${param_count + 1}
+    """
+    params.extend([limit, offset])
+    adjustments = await fetch_all(adjustments_query, *params)
+
+    return {
+        "adjustments": adjustments,
+        "total": total,
+        "page": page,
+        "limit": limit,
+    }
 
 
 # ============================================================================

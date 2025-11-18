@@ -2,11 +2,16 @@
 ================================================================================
 Farm Management System - Inventory Module Schemas
 ================================================================================
-Version: 1.0.0
-Last Updated: 2025-11-17
+Version: 1.1.0
+Last Updated: 2025-11-18
 
 Changelog:
 ----------
+v1.1.0 (2025-11-18):
+  - Added CreateCategoryRequest and UpdateCategoryRequest schemas
+  - Added stock adjustments schemas (CreateAdjustmentRequest, StockAdjustmentItem, AdjustmentsListResponse)
+  - Enhanced category and stock management capabilities
+
 v1.0.0 (2025-11-17):
   - Initial inventory Pydantic models
   - Item master, batches, transactions schemas
@@ -45,6 +50,20 @@ class CategoriesListResponse(BaseModel):
     """Categories list response"""
 
     categories: List[CategoryItem]
+
+
+class CreateCategoryRequest(BaseModel):
+    """Create category request"""
+
+    category_name: str = Field(..., min_length=1, max_length=100)
+    description: Optional[str] = None
+
+
+class UpdateCategoryRequest(BaseModel):
+    """Update category request"""
+
+    category_name: Optional[str] = Field(None, min_length=1, max_length=100)
+    description: Optional[str] = None
 
 
 # ============================================================================
@@ -471,6 +490,61 @@ class ExpiryAlertsResponse(BaseModel):
 
     items: List[ExpiryAlertItem]
     total: int
+
+
+# ============================================================================
+# STOCK ADJUSTMENTS SCHEMAS
+# ============================================================================
+
+
+class CreateAdjustmentRequest(BaseModel):
+    """Create stock adjustment request"""
+
+    item_master_id: int = Field(..., gt=0)
+    adjustment_type: str = Field(
+        ..., description="Type: increase, decrease, recount"
+    )
+    quantity_change: Decimal = Field(..., description="Change in quantity (positive or negative)")
+    reason: str = Field(..., min_length=1, max_length=255)
+    notes: Optional[str] = None
+
+    @validator("adjustment_type")
+    def validate_adjustment_type(cls, v):
+        valid_types = ["increase", "decrease", "recount"]
+        if v not in valid_types:
+            raise ValueError(f"Adjustment type must be one of: {', '.join(valid_types)}")
+        return v
+
+
+class StockAdjustmentItem(BaseModel):
+    """Stock adjustment item"""
+
+    id: int
+    item_master_id: int
+    item_name: Optional[str]
+    sku: Optional[str]
+    unit: Optional[str]
+    adjustment_type: str
+    quantity_change: Decimal
+    previous_qty: Decimal
+    new_qty: Decimal
+    reason: str
+    notes: Optional[str]
+    adjusted_by: Optional[str]
+    adjusted_by_name: Optional[str]
+    adjustment_date: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class AdjustmentsListResponse(BaseModel):
+    """Stock adjustments list response"""
+
+    adjustments: List[StockAdjustmentItem]
+    total: int
+    page: int
+    limit: int
 
 
 # ============================================================================
