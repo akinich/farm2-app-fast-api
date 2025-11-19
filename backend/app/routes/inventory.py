@@ -2,11 +2,17 @@
 ================================================================================
 Farm Management System - Inventory Module Routes
 ================================================================================
-Version: 1.3.0
+Version: 1.3.1
 Last Updated: 2025-11-19
 
 Changelog:
 ----------
+v1.3.1 (2025-11-19):
+  - CRITICAL FIX: Handle empty string parameters in GET /transactions
+  - Converts item_id from string to int, handles empty values as None
+  - Converts empty transaction_type to None
+  - Fixes 422 validation error when frontend sends item_id=&transaction_type=
+
 v1.3.0 (2025-11-19):
   - Added transaction_type query parameter to GET /transactions endpoint
   - Allows filtering transaction history by transaction type
@@ -434,7 +440,7 @@ async def get_expiry_alerts(
     description="Get inventory transaction history",
 )
 async def get_transactions(
-    item_id: Optional[int] = Query(None, description="Filter by item ID"),
+    item_id: Optional[str] = Query(None, description="Filter by item ID"),
     transaction_type: Optional[str] = Query(None, description="Filter by transaction type"),
     days_back: int = Query(30, ge=1, le=365, description="Days back to fetch"),
     page: int = Query(1, ge=1),
@@ -442,8 +448,19 @@ async def get_transactions(
     user: CurrentUser = Depends(require_module_access("inventory")),
 ):
     """Get transaction history"""
+    # Convert empty strings and invalid item_id to None
+    item_id_int = None
+    if item_id and item_id.strip():
+        try:
+            item_id_int = int(item_id)
+        except ValueError:
+            pass  # Invalid item_id, treat as None
+
+    # Convert empty string transaction_type to None
+    transaction_type_clean = transaction_type if transaction_type and transaction_type.strip() else None
+
     result = await inventory_service.get_transactions_list(
-        item_id=item_id, transaction_type=transaction_type, days_back=days_back, page=page, limit=limit
+        item_id=item_id_int, transaction_type=transaction_type_clean, days_back=days_back, page=page, limit=limit
     )
     return result
 

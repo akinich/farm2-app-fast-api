@@ -2,11 +2,16 @@
  * ============================================================================
  * Biofloc Batches Management Page
  * ============================================================================
- * Version: 1.1.0
+ * Version: 1.1.1
  * Last Updated: 2025-11-19
  *
  * Changelog:
  * ----------
+ * v1.1.1 (2025-11-19):
+ *   - FIX: Disabled "View Details" button to prevent redirect to dashboard
+ *   - Commented out CardActions until batch detail page is implemented
+ *   - Prevents broken navigation when clicking View Details
+ *
  * v1.1.0 (2025-11-19):
  *   - CRITICAL FIX: Added safeToFixed() helper to prevent .toFixed() crashes
  *   - Fixed TypeError when backend returns string values instead of numbers
@@ -173,11 +178,11 @@ const BatchCard = ({ batch, onView }) => {
           )}
         </Box>
       </CardContent>
-      <CardActions sx={{ justifyContent: 'flex-end', pt: 0 }}>
+      {/* <CardActions sx={{ justifyContent: 'flex-end', pt: 0 }}>
         <Button size="small" startIcon={<ViewIcon />} onClick={() => onView(batch)}>
           View Details
         </Button>
-      </CardActions>
+      </CardActions> */}
     </Card>
   );
 };
