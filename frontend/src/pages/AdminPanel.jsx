@@ -1,10 +1,17 @@
 /**
  * Admin Panel - User Management, Modules, Permissions & Activity Logs
- * Version: 1.4.0
- * Last Updated: 2025-11-18
+ * Version: 1.5.0
+ * Last Updated: 2025-11-19
  *
  * Changelog:
  * ----------
+ * v1.5.0 (2025-11-19):
+ *   - Added Edit User functionality with dialog
+ *   - Added Delete User confirmation dialog
+ *   - Enhanced Actions column with Edit and Delete buttons
+ *   - Soft delete (deactivate) with confirmation
+ *   - Real-time user list updates after edit/delete
+ *
  * v1.4.0 (2025-11-18):
  *   - MODULE MANAGEMENT SECURITY PROTOCOLS (All 4 protocols implemented):
  *   - Protocol 1: Critical Module Protection - Prevent disabling dashboard/admin modules
@@ -80,6 +87,7 @@ import {
 import {
   Add as AddIcon,
   Edit as EditIcon,
+  Delete as DeleteIcon,
   VpnKey as PermissionsIcon,
   ExpandMore as ExpandMoreIcon,
   ChevronRight as ChevronRightIcon,
@@ -266,6 +274,229 @@ function CreateUserDialog({ open, onClose }) {
   );
 }
 
+// Edit User Dialog Component
+function EditUserDialog({ open, onClose, user }) {
+  const { enqueueSnackbar } = useSnackbar();
+  const queryClient = useQueryClient();
+
+  const [formData, setFormData] = useState({
+    full_name: '',
+    role_id: 2,
+    is_active: true,
+  });
+
+  const [errors, setErrors] = useState({});
+
+  // Fetch roles for dropdown
+  const { data: rolesData } = useQuery('adminRoles', () => adminAPI.getRoles(), {
+    enabled: open,
+  });
+
+  // Initialize form with user data
+  React.useEffect(() => {
+    if (user) {
+      setFormData({
+        full_name: user.full_name || '',
+        role_id: user.role_id || 2,
+        is_active: user.is_active ?? true,
+      });
+    }
+  }, [user]);
+
+  const updateUserMutation = useMutation(
+    (data) => adminAPI.updateUser(user?.id, data),
+    {
+      onSuccess: () => {
+        enqueueSnackbar('User updated successfully!', { variant: 'success' });
+        queryClient.invalidateQueries('adminUsers');
+        onClose();
+      },
+      onError: (error) => {
+        enqueueSnackbar(
+          `Failed to update user: ${error.response?.data?.detail || error.message}`,
+          { variant: 'error' }
+        );
+      },
+    }
+  );
+
+  const handleChange = (field) => (event) => {
+    const value = field === 'is_active' ? event.target.checked : event.target.value;
+    setFormData({ ...formData, [field]: value });
+    if (errors[field]) {
+      setErrors({ ...errors, [field]: null });
+    }
+  };
+
+  const validate = () => {
+    const newErrors = {};
+
+    if (!formData.full_name.trim()) {
+      newErrors.full_name = 'Full name is required';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = () => {
+    if (!validate()) return;
+    updateUserMutation.mutate(formData);
+  };
+
+  const handleClose = () => {
+    setErrors({});
+    onClose();
+  };
+
+  return (
+    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+      <DialogTitle>Edit User</DialogTitle>
+      <DialogContent>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
+          <TextField
+            label="Email Address"
+            type="email"
+            fullWidth
+            value={user?.email || ''}
+            disabled
+            helperText="Email cannot be changed"
+          />
+
+          <TextField
+            label="Full Name"
+            required
+            fullWidth
+            value={formData.full_name}
+            onChange={handleChange('full_name')}
+            error={!!errors.full_name}
+            helperText={errors.full_name}
+            placeholder="John Doe"
+            autoFocus
+          />
+
+          <FormControl fullWidth required>
+            <InputLabel>Role</InputLabel>
+            <Select
+              value={formData.role_id}
+              onChange={handleChange('role_id')}
+              label="Role"
+            >
+              {rolesData?.roles?.map((role) => (
+                <MenuItem key={role.id} value={role.id}>
+                  {role.role_name}
+                </MenuItem>
+              ))}
+            </Select>
+            <FormHelperText>Assign a role to this user</FormHelperText>
+          </FormControl>
+
+          <FormControlLabel
+            control={
+              <Switch
+                checked={formData.is_active}
+                onChange={handleChange('is_active')}
+                color="primary"
+              />
+            }
+            label={formData.is_active ? 'Active' : 'Inactive'}
+          />
+        </Box>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={handleClose} disabled={updateUserMutation.isLoading}>
+          Cancel
+        </Button>
+        <Button
+          onClick={handleSubmit}
+          variant="contained"
+          disabled={updateUserMutation.isLoading}
+          startIcon={
+            updateUserMutation.isLoading ? <CircularProgress size={20} /> : <EditIcon />
+          }
+        >
+          Update User
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+}
+
+// Delete User Confirmation Dialog Component
+function DeleteUserConfirmDialog({ open, onClose, user }) {
+  const { enqueueSnackbar } = useSnackbar();
+  const queryClient = useQueryClient();
+
+  const deleteUserMutation = useMutation(() => adminAPI.deleteUser(user?.id), {
+    onSuccess: () => {
+      enqueueSnackbar('User deleted (deactivated) successfully!', { variant: 'success' });
+      queryClient.invalidateQueries('adminUsers');
+      onClose();
+    },
+    onError: (error) => {
+      enqueueSnackbar(
+        `Failed to delete user: ${error.response?.data?.detail || error.message}`,
+        { variant: 'error' }
+      );
+    },
+  });
+
+  const handleConfirm = () => {
+    deleteUserMutation.mutate();
+  };
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle>Confirm Delete User</DialogTitle>
+      <DialogContent>
+        <Box sx={{ mt: 1 }}>
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            You are about to delete (deactivate) the following user:
+          </Alert>
+
+          <Box sx={{ p: 2, bgcolor: 'action.hover', borderRadius: 1 }}>
+            <Typography variant="h6" gutterBottom>
+              {user?.full_name}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Email: {user?.email}
+              <br />
+              Role: {user?.role_name}
+            </Typography>
+          </Box>
+
+          <Alert severity="info" sx={{ mt: 2 }}>
+            <Typography variant="body2">
+              This is a soft delete - the user will be deactivated but not permanently removed from
+              the database. The user will no longer be able to log in.
+            </Typography>
+          </Alert>
+
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+            Are you sure you want to delete this user?
+          </Typography>
+        </Box>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose} disabled={deleteUserMutation.isLoading}>
+          Cancel
+        </Button>
+        <Button
+          onClick={handleConfirm}
+          variant="contained"
+          color="error"
+          disabled={deleteUserMutation.isLoading}
+          startIcon={
+            deleteUserMutation.isLoading ? <CircularProgress size={20} /> : <DeleteIcon />
+          }
+        >
+          Delete User
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+}
+
 // Confirm Module Toggle Dialog Component
 function ConfirmModuleToggleDialog({ open, onClose, onConfirm, module, usersCount, isLoading }) {
   return (
@@ -332,6 +563,8 @@ function UserManagementPage() {
   const [selectedUser, setSelectedUser] = useState(null);
   const [permissionsDialogOpen, setPermissionsDialogOpen] = useState(false);
   const [createUserDialogOpen, setCreateUserDialogOpen] = useState(false);
+  const [editUserDialogOpen, setEditUserDialogOpen] = useState(false);
+  const [deleteUserDialogOpen, setDeleteUserDialogOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -348,6 +581,16 @@ function UserManagementPage() {
   const handleManagePermissions = (user) => {
     setSelectedUser(user);
     setPermissionsDialogOpen(true);
+  };
+
+  const handleEditUser = (user) => {
+    setSelectedUser(user);
+    setEditUserDialogOpen(true);
+  };
+
+  const handleDeleteUser = (user) => {
+    setSelectedUser(user);
+    setDeleteUserDialogOpen(true);
   };
 
   return (
@@ -402,10 +645,27 @@ function UserManagementPage() {
                     <TableCell>
                       <IconButton
                         size="small"
+                        onClick={() => handleEditUser(user)}
+                        title="Edit User"
+                        color="primary"
+                      >
+                        <EditIcon />
+                      </IconButton>
+                      <IconButton
+                        size="small"
                         onClick={() => handleManagePermissions(user)}
                         title="Manage Permissions"
+                        color="default"
                       >
                         <PermissionsIcon />
+                      </IconButton>
+                      <IconButton
+                        size="small"
+                        onClick={() => handleDeleteUser(user)}
+                        title="Delete User"
+                        color="error"
+                      >
+                        <DeleteIcon />
                       </IconButton>
                     </TableCell>
                   </TableRow>
@@ -421,6 +681,30 @@ function UserManagementPage() {
         open={createUserDialogOpen}
         onClose={() => setCreateUserDialogOpen(false)}
       />
+
+      {/* Edit User Dialog */}
+      {selectedUser && (
+        <EditUserDialog
+          open={editUserDialogOpen}
+          onClose={() => {
+            setEditUserDialogOpen(false);
+            setSelectedUser(null);
+          }}
+          user={selectedUser}
+        />
+      )}
+
+      {/* Delete User Confirmation Dialog */}
+      {selectedUser && (
+        <DeleteUserConfirmDialog
+          open={deleteUserDialogOpen}
+          onClose={() => {
+            setDeleteUserDialogOpen(false);
+            setSelectedUser(null);
+          }}
+          user={selectedUser}
+        />
+      )}
 
       {/* Permissions Dialog */}
       {selectedUser && (
