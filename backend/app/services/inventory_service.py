@@ -2,11 +2,18 @@
 ================================================================================
 Farm Management System - Inventory Service Layer
 ================================================================================
-Version: 1.4.0
-Last Updated: 2025-11-18
+Version: 1.5.0
+Last Updated: 2025-11-19
 
 Changelog:
 ----------
+v1.5.0 (2025-11-19):
+  - CRITICAL FIX: Cast UUID fields to text in purchase orders query
+  - CRITICAL FIX: Cast UUID fields to text in transactions query
+  - Added transaction_type filter parameter to get_transactions_list()
+  - Made category filtering case-insensitive in get_items_list()
+  - Fixes ResponseValidationError in purchase orders and transactions endpoints
+
 v1.4.0 (2025-11-18):
   - Added batch_deduct_stock() for atomic multi-item deduction
   - Added bulk_fetch_items() for fetching multiple items efficiently
