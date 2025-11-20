@@ -2,8 +2,28 @@
 ================================================================================
 Farm Management System - Ticket Service Layer
 ================================================================================
-Version: 1.0.0
+Version: 1.0.1
 Last Updated: 2025-11-20
+
+Changelog:
+----------
+v1.0.1 (2025-11-20):
+  - CRITICAL FIX: Resolved SQL query error causing 500 errors on ticket fetch
+  - Added JOIN with auth.users table to properly retrieve user email addresses
+  - Fixed get_tickets_list() - added LEFT JOIN for auth.users on created_by and closed_by
+  - Fixed get_ticket_by_id() - added LEFT JOIN for auth.users on created_by and closed_by
+  - Fixed add_comment() - added LEFT JOIN for auth.users to get commenter email
+  - Fixed update_comment() - added LEFT JOIN for auth.users to get commenter email
+  - Changed all email field selections from up.email to au.email
+  - Resolves: "column up_created.email does not exist" database error
+
+v1.0.0 (2025-11-20):
+  - Initial ticket service implementation
+  - Ticket CRUD operations with filtering and pagination
+  - Admin-specific operations (set priority, change status, close tickets)
+  - Comment system with CRUD operations
+  - Ticket statistics aggregation
+  - Transaction support for ticket closing with comments
 
 Description:
   Service layer for ticket system - handles issues, feature requests, and
