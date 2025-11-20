@@ -1,7 +1,7 @@
 -- ============================================================================
--- Add Documentation Module to System
+-- Add Documentation Module to System (CORRECTED)
 -- ============================================================================
--- Version: 1.0.0
+-- Version: 1.0.1
 -- Created: 2025-11-20
 -- Description: Adds the Documentation/Help module to the sidebar navigation
 -- ============================================================================
@@ -43,21 +43,25 @@ FROM modules
 WHERE module_key = 'docs';
 
 -- ============================================================================
+-- Grant access to all existing active users (OPTIONAL)
+-- ============================================================================
+-- Run this to give all existing users access to the documentation:
+
+INSERT INTO user_module_permissions (user_id, module_id)
+SELECT u.id, m.id
+FROM users u
+CROSS JOIN modules m
+WHERE m.module_key = 'docs'
+AND u.is_active = true
+AND u.role = 'User'
+ON CONFLICT DO NOTHING;
+
+-- ============================================================================
 -- Notes:
 -- ============================================================================
--- 1. All users (including regular users and admins) will see this module
---    since it's for help/documentation
--- 2. No special permissions needed - documentation is available to everyone
--- 3. To make it available to all existing users, run:
---
---    INSERT INTO user_module_permissions (user_id, module_id)
---    SELECT u.id, m.id
---    FROM users u
---    CROSS JOIN modules m
---    WHERE m.module_key = 'docs'
---    AND u.is_active = true
---    AND u.role = 'User'
---    ON CONFLICT DO NOTHING;
---
--- 4. Admin users automatically have access to all modules, no permission needed
+-- 1. Admin users automatically have access to all modules
+-- 2. The icon 'MenuBook' is a Material-UI icon name (will render as book icon)
+-- 3. display_order = 100 places it at the bottom of the sidebar
+-- 4. All new users will need to be granted access, or you can auto-grant
+--    in your user creation logic
 -- ============================================================================
