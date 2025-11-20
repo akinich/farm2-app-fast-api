@@ -835,7 +835,20 @@ async def get_activity_logs(
         LIMIT ${param_count} OFFSET ${param_count + 1}
     """
     params.extend([limit, offset])
-    logs = await fetch_all(logs_query, *params)
+    logs_raw = await fetch_all(logs_query, *params)
+
+    # Convert logs to dicts and parse metadata JSON strings
+    import json
+    logs = []
+    for log in logs_raw:
+        log_dict = dict(log)
+        # Parse metadata if it's a string
+        if log_dict.get('metadata') and isinstance(log_dict['metadata'], str):
+            try:
+                log_dict['metadata'] = json.loads(log_dict['metadata'])
+            except json.JSONDecodeError:
+                log_dict['metadata'] = None
+        logs.append(log_dict)
 
     return {"logs": logs, "total": total, "page": page, "limit": limit}
 
