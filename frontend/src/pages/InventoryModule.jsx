@@ -1,10 +1,13 @@
 /**
  * Inventory Module - Items, Stock, Purchase Orders, Alerts
- * Version: 2.1.2
+ * Version: 2.1.3
  * Last Updated: 2025-11-21
  *
  * Changelog:
  * ----------
+ * v2.1.3 (2025-11-21):
+ *   - BUGFIX: Use Number() conversion for has_transactions to handle string/number types
+ *
  * v2.1.2 (2025-11-21):
  *   - BUGFIX: Check has_transactions === 0 (integer) instead of boolean for reliable detection
  *
@@ -663,7 +666,7 @@ function ItemsPage() {
                           >
                             <RestoreIcon fontSize="small" />
                           </IconButton>
-                          {item.has_transactions === 0 && (
+                          {Number(item.has_transactions) === 0 && (
                             <IconButton
                               size="small"
                               onClick={() => handleHardDeleteClick(item)}
