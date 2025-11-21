@@ -640,7 +640,10 @@ function ItemsPage() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {filteredItems?.map((item) => (
+                {filteredItems?.map((item) => {
+                  // Debug logging
+                  console.log(`Item: ${item.item_name}, has_transactions:`, item.has_transactions, 'Type:', typeof item.has_transactions);
+                  return (
                   <TableRow key={item.id}>
                     <TableCell>{item.item_name}</TableCell>
                     <TableCell>{item.sku || '-'}</TableCell>
@@ -661,11 +664,18 @@ function ItemsPage() {
                     <TableCell>{item.unit}</TableCell>
                     <TableCell>{item.reorder_threshold}</TableCell>
                     <TableCell>
-                      <Chip
-                        label={item.is_active ? 'Active' : 'Inactive'}
-                        color={item.is_active ? 'success' : 'default'}
-                        size="small"
-                      />
+                      <Box>
+                        <Chip
+                          label={item.is_active ? 'Active' : 'Inactive'}
+                          color={item.is_active ? 'success' : 'default'}
+                          size="small"
+                        />
+                        {!item.is_active && (
+                          <Typography variant="caption" display="block" sx={{ mt: 0.5 }}>
+                            Txns: {item.has_transactions}
+                          </Typography>
+                        )}
+                      </Box>
                     </TableCell>
                     <TableCell>
                       {item.is_active ? (
@@ -703,7 +713,8 @@ function ItemsPage() {
                       )}
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           </TableContainer>
