@@ -1,10 +1,15 @@
 /**
  * Inventory Module - Items, Stock, Purchase Orders, Alerts
- * Version: 2.0.0
+ * Version: 2.1.0
  * Last Updated: 2025-11-21
  *
  * Changelog:
  * ----------
+ * v2.1.0 (2025-11-21):
+ *   - ENHANCEMENT: Permanent delete button now hidden for items with transaction history
+ *   - Items with transactions can only be deactivated, not permanently deleted
+ *   - Preserves audit trail for items that have been used in transactions
+ *
  * v2.0.0 (2025-11-21):
  *   - FEATURE: Added "Inactive Only" option to status filter dropdown
  *   - FEATURE: Added permanent delete (hard delete) for inactive items

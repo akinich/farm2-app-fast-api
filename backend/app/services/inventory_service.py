@@ -2,11 +2,16 @@
 ================================================================================
 Farm Management System - Inventory Service Layer
 ================================================================================
-Version: 1.7.0
+Version: 1.8.0
 Last Updated: 2025-11-21
 
 Changelog:
 ----------
+v1.8.0 (2025-11-21):
+  - Added has_transactions flag to get_items_list() response
+  - Added transaction check in hard_delete_item() - prevents deletion of items with transaction history
+  - Returns proper error message instead of 500 error for FK constraint violation
+
 v1.7.0 (2025-11-21):
   - Added hard_delete_item() for permanent deletion of inactive items
   - Only inactive items can be permanently deleted (is_active = FALSE)
