@@ -652,15 +652,17 @@ function ItemsPage() {
                           >
                             <RestoreIcon fontSize="small" />
                           </IconButton>
-                          <IconButton
-                            size="small"
-                            onClick={() => handleHardDeleteClick(item)}
-                            color="error"
-                            title="Permanently delete item"
-                            disabled={hardDeleteItemMutation.isLoading}
-                          >
-                            <DeleteForeverIcon fontSize="small" />
-                          </IconButton>
+                          {!item.has_transactions && (
+                            <IconButton
+                              size="small"
+                              onClick={() => handleHardDeleteClick(item)}
+                              color="error"
+                              title="Permanently delete item"
+                              disabled={hardDeleteItemMutation.isLoading}
+                            >
+                              <DeleteForeverIcon fontSize="small" />
+                            </IconButton>
+                          )}
                         </Box>
                       )}
                     </TableCell>

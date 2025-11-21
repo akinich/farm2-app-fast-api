@@ -144,7 +144,8 @@ async def get_items_list(
             im.id, im.item_name, im.sku, im.category, im.unit,
             im.default_supplier_id, s.supplier_name as default_supplier_name,
             im.default_price, im.reorder_threshold, im.min_stock_level,
-            im.current_qty, im.is_active, im.created_at
+            im.current_qty, im.is_active, im.created_at,
+            (SELECT COUNT(*) > 0 FROM inventory_transactions it WHERE it.item_master_id = im.id) as has_transactions
         FROM item_master im
         LEFT JOIN suppliers s ON s.id = im.default_supplier_id
         {where_clause}
