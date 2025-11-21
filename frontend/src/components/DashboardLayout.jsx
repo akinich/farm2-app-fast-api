@@ -93,10 +93,12 @@ export default function DashboardLayout() {
   const timeoutRef = useRef(null);
   const warningTimeoutRef = useRef(null);
   const countdownRef = useRef(null);
+  const isWarningShownRef = useRef(false);
 
   // Handle session timeout logout
   const handleSessionTimeout = useCallback(async () => {
     setShowTimeoutWarning(false);
+    isWarningShownRef.current = false;
     await logout();
     enqueueSnackbar('Session expired due to inactivity', { variant: 'warning' });
     navigate('/login');
@@ -111,11 +113,13 @@ export default function DashboardLayout() {
 
     // Hide warning if shown
     setShowTimeoutWarning(false);
+    isWarningShownRef.current = false;
     setTimeoutCountdown(60);
 
     // Set warning timer (1 minute before timeout)
     warningTimeoutRef.current = setTimeout(() => {
       setShowTimeoutWarning(true);
+      isWarningShownRef.current = true;
       setTimeoutCountdown(60);
 
       // Start countdown
@@ -147,7 +151,8 @@ export default function DashboardLayout() {
     const activityEvents = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart', 'click'];
 
     const handleActivity = () => {
-      if (!showTimeoutWarning) {
+      // Only reset timer if warning is not shown
+      if (!isWarningShownRef.current) {
         resetTimer();
       }
     };
@@ -169,7 +174,7 @@ export default function DashboardLayout() {
       if (warningTimeoutRef.current) clearTimeout(warningTimeoutRef.current);
       if (countdownRef.current) clearInterval(countdownRef.current);
     };
-  }, [resetTimer, showTimeoutWarning]);
+  }, [resetTimer]);
 
   // Fetch user accessible modules
   useEffect(() => {
