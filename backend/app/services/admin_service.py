@@ -241,11 +241,11 @@ async def create_user(request: CreateUserRequest, created_by_id: str) -> Dict:
 
         user_id = user_response.user.id
 
-        # Create user profile with password_hash
+        # Create user profile with password_hash and must_change_password flag
         await execute_query(
             """
-            INSERT INTO user_profiles (id, full_name, role_id, is_active, password_hash)
-            VALUES ($1, $2, $3, TRUE, $4)
+            INSERT INTO user_profiles (id, full_name, role_id, is_active, password_hash, must_change_password)
+            VALUES ($1, $2, $3, TRUE, $4, TRUE)
             """,
             user_id,
             request.full_name,

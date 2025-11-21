@@ -215,6 +215,45 @@ class CurrentUser(BaseModel):
 
 
 # ============================================================================
+# CHANGE PASSWORD SCHEMAS
+# ============================================================================
+
+
+class ChangePasswordRequest(BaseModel):
+    """Change password request (for logged-in users)"""
+
+    current_password: str = Field(..., min_length=1, description="Current password")
+    new_password: str = Field(..., min_length=8, description="New password")
+
+    @validator("new_password")
+    def validate_password(cls, v):
+        """Validate password strength"""
+        from app.auth.password import validate_password_strength
+
+        is_valid, error_msg = validate_password_strength(v)
+        if not is_valid:
+            raise ValueError(error_msg)
+        return v
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "current_password": "OldPassword123!",
+                "new_password": "NewSecurePass456!",
+            }
+        }
+
+
+class ChangePasswordResponse(BaseModel):
+    """Change password response"""
+
+    message: str = Field(default="Password changed successfully")
+
+    class Config:
+        json_schema_extra = {"example": {"message": "Password changed successfully"}}
+
+
+# ============================================================================
 # ERROR RESPONSES
 # ============================================================================
 

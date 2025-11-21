@@ -127,6 +127,22 @@ def generate_temporary_password(length: int = 16) -> str:
 
 
 # ============================================================================
+# COMMON PASSWORDS LIST (Top 100 most common)
+# ============================================================================
+
+COMMON_PASSWORDS = {
+    "password", "123456", "12345678", "qwerty", "abc123", "monkey", "1234567",
+    "letmein", "trustno1", "dragon", "baseball", "iloveyou", "master", "sunshine",
+    "ashley", "bailey", "passw0rd", "shadow", "123123", "654321", "superman",
+    "qazwsx", "michael", "football", "password1", "password123", "welcome",
+    "welcome1", "admin", "login", "princess", "admin123", "root", "toor",
+    "pass", "test", "guest", "master123", "changeme", "hello", "123qwe",
+    "1q2w3e4r", "qwerty123", "password!", "Password1", "Password1!", "P@ssw0rd",
+    "P@ssword1", "Password123", "Qwerty123", "Admin123", "Welcome1", "Letmein1",
+}
+
+
+# ============================================================================
 # PASSWORD VALIDATION
 # ============================================================================
 
@@ -141,6 +157,7 @@ def validate_password_strength(password: str) -> tuple[bool, str]:
     - At least one lowercase letter
     - At least one digit
     - At least one special character
+    - Not a common password
 
     Args:
         password: Password to validate
@@ -163,6 +180,10 @@ def validate_password_strength(password: str) -> tuple[bool, str]:
     special_chars = "!@#$%^&*()_+-=[]{}|;:,.<>?"
     if not any(c in special_chars for c in password):
         return False, "Password must contain at least one special character"
+
+    # Check against common passwords
+    if password.lower() in {p.lower() for p in COMMON_PASSWORDS}:
+        return False, "Password is too common. Please choose a more unique password"
 
     return True, ""
 

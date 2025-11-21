@@ -1,15 +1,21 @@
 /**
  * Main App Component
- * Version: 1.0.0
+ * Version: 1.1.0
+ *
+ * Changelog:
+ * v1.1.0 (2025-11-21):
+ *   - Added ChangePasswordPage route
+ *   - Added mustChangePassword redirect logic
  */
 
 import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import useAuthStore from './store/authStore';
 
 // Pages
 import LoginPage from './pages/LoginPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
+import ChangePasswordPage from './pages/ChangePasswordPage';
 import DashboardLayout from './components/DashboardLayout';
 import DashboardHome from './pages/DashboardHome';
 import AdminPanel from './pages/AdminPanel';
@@ -20,11 +26,18 @@ import DevelopmentModule from './pages/DevelopmentModule';
 import DocsModule from './pages/DocsModule';
 
 // Protected Route Component
-const ProtectedRoute = ({ children }) => {
+const ProtectedRoute = ({ children, allowChangePassword = false }) => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const mustChangePassword = useAuthStore((state) => state.mustChangePassword);
+  const location = useLocation();
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  // If must change password and not on change-password page, redirect
+  if (mustChangePassword && !allowChangePassword && location.pathname !== '/change-password') {
+    return <Navigate to="/change-password" replace />;
   }
 
   return children;
@@ -36,6 +49,16 @@ function App() {
       {/* Public Routes */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
+
+      {/* Change Password Route (protected, but allowed when mustChangePassword) */}
+      <Route
+        path="/change-password"
+        element={
+          <ProtectedRoute allowChangePassword>
+            <ChangePasswordPage />
+          </ProtectedRoute>
+        }
+      />
 
       {/* Protected Routes */}
       <Route

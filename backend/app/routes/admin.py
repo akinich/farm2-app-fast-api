@@ -109,6 +109,25 @@ async def delete_user(
     return DeleteUserResponse(message=message)
 
 
+@router.post(
+    "/users/{user_id}/unlock",
+    summary="Unlock User Account",
+    description="Unlock a user account that has been locked due to failed login attempts (Admin only)",
+    responses={
+        200: {"description": "Account unlocked successfully"},
+        404: {"model": ErrorResponse, "description": "User not found"},
+    },
+)
+async def unlock_user_account(
+    user_id: str,
+    admin: CurrentUser = Depends(require_admin),
+):
+    """Unlock a locked user account"""
+    from app.services.auth_service import admin_unlock_account
+    result = await admin_unlock_account(user_id)
+    return result
+
+
 # ============================================================================
 # ROLE MANAGEMENT ENDPOINTS
 # ============================================================================

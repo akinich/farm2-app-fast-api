@@ -2,11 +2,18 @@
 ================================================================================
 Farm Management System - Authentication Service
 ================================================================================
-Version: 1.2.0
-Last Updated: 2025-11-18
+Version: 1.3.0
+Last Updated: 2025-11-21
 
 Changelog:
 ----------
+v1.3.0 (2025-11-21):
+  - Added account lockout after 5 failed login attempts
+  - Added 15-minute lockout duration
+  - Added must_change_password flag support
+  - Added change_password endpoint for logged-in users
+  - Added admin unlock account functionality
+
 v1.2.0 (2025-11-18):
   - CRITICAL SECURITY FIX: Implemented proper password verification
   - Added password_hash column to user query
@@ -38,10 +45,14 @@ from datetime import datetime, timedelta
 
 from app.database import fetch_one, execute_query, fetch_all
 from app.auth.jwt import create_access_token, create_refresh_token, verify_refresh_token
-from app.auth.password import verify_password, hash_password
+from app.auth.password import verify_password, hash_password, validate_password_strength
 from app.config import settings
 from app.schemas.auth import LoginResponse, UserInfo
 from app.utils.supabase_client import get_supabase_client
+
+# Account lockout settings
+MAX_FAILED_ATTEMPTS = 5
+LOCKOUT_DURATION_MINUTES = 15
 
 logger = logging.getLogger(__name__)
 
@@ -51,23 +62,25 @@ logger = logging.getLogger(__name__)
 # ============================================================================
 
 
-async def authenticate_user(email: str, password: str) -> LoginResponse:
+async def authenticate_user(email: str, password: str) -> dict:
     """
     Authenticate user with email and password.
 
     Flow:
     1. Fetch user from database by email
-    2. Verify password (TODO: add password_hash to user_profiles)
-    3. Generate JWT tokens
-    4. Log activity
-    5. Return tokens + user info
+    2. Check account lockout status
+    3. Verify password (increment failed attempts on failure)
+    4. Reset failed attempts on success
+    5. Generate JWT tokens
+    6. Log activity
+    7. Return tokens + user info + must_change_password flag
 
     Args:
         email: User email
         password: User password
 
     Returns:
-        LoginResponse with tokens and user info
+        Dict with tokens, user info, and must_change_password flag
 
     Raises:
         HTTPException: If authentication fails
@@ -83,7 +96,10 @@ async def authenticate_user(email: str, password: str) -> LoginResponse:
                 up.role_id,
                 r.role_name as role,
                 up.is_active,
-                up.password_hash
+                up.password_hash,
+                up.failed_login_attempts,
+                up.locked_until,
+                up.must_change_password
             FROM user_profiles up
             JOIN auth.users au ON au.id = up.id
             LEFT JOIN roles r ON r.id = up.role_id
@@ -104,6 +120,15 @@ async def authenticate_user(email: str, password: str) -> LoginResponse:
                 detail="Account is inactive. Please contact administrator.",
             )
 
+        # Check account lockout
+        locked_until = user_profile.get("locked_until")
+        if locked_until and locked_until > datetime.utcnow():
+            remaining_minutes = int((locked_until - datetime.utcnow()).total_seconds() / 60) + 1
+            raise HTTPException(
+                status_code=status.HTTP_423_LOCKED,
+                detail=f"Account is locked due to too many failed login attempts. Try again in {remaining_minutes} minutes.",
+            )
+
         # Verify password
         if not user_profile.get("password_hash"):
             raise HTTPException(
@@ -112,10 +137,53 @@ async def authenticate_user(email: str, password: str) -> LoginResponse:
             )
 
         if not verify_password(password, user_profile["password_hash"]):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid email or password",
-            )
+            # Increment failed login attempts
+            failed_attempts = (user_profile.get("failed_login_attempts") or 0) + 1
+
+            if failed_attempts >= MAX_FAILED_ATTEMPTS:
+                # Lock the account
+                lock_until = datetime.utcnow() + timedelta(minutes=LOCKOUT_DURATION_MINUTES)
+                await execute_query(
+                    """
+                    UPDATE user_profiles
+                    SET failed_login_attempts = $1, locked_until = $2, updated_at = NOW()
+                    WHERE id = $3
+                    """,
+                    failed_attempts,
+                    lock_until,
+                    user_profile["id"],
+                )
+                logger.warning(f"Account locked for user {email} after {failed_attempts} failed attempts")
+                raise HTTPException(
+                    status_code=status.HTTP_423_LOCKED,
+                    detail=f"Account locked due to {MAX_FAILED_ATTEMPTS} failed login attempts. Try again in {LOCKOUT_DURATION_MINUTES} minutes.",
+                )
+            else:
+                # Just increment counter
+                await execute_query(
+                    """
+                    UPDATE user_profiles
+                    SET failed_login_attempts = $1, updated_at = NOW()
+                    WHERE id = $2
+                    """,
+                    failed_attempts,
+                    user_profile["id"],
+                )
+                remaining = MAX_FAILED_ATTEMPTS - failed_attempts
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail=f"Invalid email or password. {remaining} attempts remaining before account lockout.",
+                )
+
+        # Reset failed attempts on successful login
+        await execute_query(
+            """
+            UPDATE user_profiles
+            SET failed_login_attempts = 0, locked_until = NULL, updated_at = NOW()
+            WHERE id = $1
+            """,
+            user_profile["id"],
+        )
 
         # Generate JWT tokens
         access_token = create_access_token(
@@ -136,20 +204,21 @@ async def authenticate_user(email: str, password: str) -> LoginResponse:
             description=f"User {user_profile['email']} logged in successfully",
         )
 
-        # Return response
-        return LoginResponse(
-            access_token=access_token,
-            refresh_token=refresh_token,
-            token_type="Bearer",
-            expires_in=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-            user=UserInfo(
-                id=str(user_profile["id"]),
-                email=user_profile["email"],
-                full_name=user_profile["full_name"],
-                role=user_profile["role"],
-                is_active=user_profile["is_active"],
-            ),
-        )
+        # Return response with must_change_password flag
+        return {
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "token_type": "Bearer",
+            "expires_in": settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+            "must_change_password": user_profile.get("must_change_password", False),
+            "user": {
+                "id": str(user_profile["id"]),
+                "email": user_profile["email"],
+                "full_name": user_profile["full_name"],
+                "role": user_profile["role"],
+                "is_active": user_profile["is_active"],
+            },
+        }
 
     except HTTPException:
         # Re-raise HTTP exceptions
@@ -435,3 +504,157 @@ async def log_activity(
     except Exception as e:
         # Don't fail the main operation if logging fails
         logger.error(f"Activity logging error: {e}")
+
+
+# ============================================================================
+# CHANGE PASSWORD SERVICE (for logged-in users)
+# ============================================================================
+
+
+async def change_password(user_id: str, current_password: str, new_password: str) -> Dict[str, str]:
+    """
+    Change password for authenticated user.
+
+    Args:
+        user_id: Current user's UUID
+        current_password: Current password for verification
+        new_password: New password
+
+    Returns:
+        Success message
+
+    Raises:
+        HTTPException: If change fails
+    """
+    try:
+        # Fetch user's current password hash
+        user = await fetch_one(
+            """
+            SELECT up.id, au.email, up.password_hash, up.must_change_password
+            FROM user_profiles up
+            JOIN auth.users au ON au.id = up.id
+            WHERE up.id = $1
+            """,
+            user_id
+        )
+
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+
+        # Verify current password
+        if not verify_password(current_password, user["password_hash"]):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Current password is incorrect"
+            )
+
+        # Validate new password strength
+        is_valid, error_msg = validate_password_strength(new_password)
+        if not is_valid:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=error_msg
+            )
+
+        # Check new password is different from current
+        if verify_password(new_password, user["password_hash"]):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="New password must be different from current password"
+            )
+
+        # Hash and update password
+        new_hash = hash_password(new_password)
+        await execute_query(
+            """
+            UPDATE user_profiles
+            SET password_hash = $1, must_change_password = FALSE,
+                last_password_change = NOW(), updated_at = NOW()
+            WHERE id = $2
+            """,
+            new_hash,
+            user_id
+        )
+
+        # Also update in Supabase Auth
+        try:
+            supabase = get_supabase_client()
+            supabase.auth.admin.update_user_by_id(user_id, {"password": new_password})
+        except Exception as e:
+            logger.warning(f"Failed to update password in Supabase Auth: {e}")
+
+        logger.info(f"Password changed successfully for user: {user['email']}")
+
+        return {"message": "Password changed successfully"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Change password error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An error occurred while changing password"
+        )
+
+
+# ============================================================================
+# ADMIN UNLOCK ACCOUNT SERVICE
+# ============================================================================
+
+
+async def admin_unlock_account(user_id: str) -> Dict[str, str]:
+    """
+    Admin function to unlock a locked user account.
+
+    Args:
+        user_id: UUID of user to unlock
+
+    Returns:
+        Success message
+
+    Raises:
+        HTTPException: If unlock fails
+    """
+    try:
+        # Check user exists
+        user = await fetch_one(
+            """
+            SELECT up.id, au.email, up.locked_until, up.failed_login_attempts
+            FROM user_profiles up
+            JOIN auth.users au ON au.id = up.id
+            WHERE up.id = $1
+            """,
+            user_id
+        )
+
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+
+        # Reset lockout fields
+        await execute_query(
+            """
+            UPDATE user_profiles
+            SET failed_login_attempts = 0, locked_until = NULL, updated_at = NOW()
+            WHERE id = $1
+            """,
+            user_id
+        )
+
+        logger.info(f"Account unlocked by admin for user: {user['email']}")
+
+        return {"message": f"Account unlocked successfully for {user['email']}"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Admin unlock account error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An error occurred while unlocking account"
+        )
