@@ -1,10 +1,18 @@
 /**
  * Inventory Module - Items, Stock, Purchase Orders, Alerts
- * Version: 1.8.0
- * Last Updated: 2025-11-18
+ * Version: 1.9.0
+ * Last Updated: 2025-11-21
  *
  * Changelog:
  * ----------
+ * v1.9.0 (2025-11-21):
+ *   - BREAKING: Removed custom category input - categories must be selected from dropdown only
+ *   - FEATURE: Added default_price field (optional, 2 decimal precision)
+ *   - FEATURE: Added delete item functionality with stock validation
+ *   - Updated AddItemDialog to require category selection from existing categories
+ *   - Added delete button to items table with confirmation dialog
+ *   - Updated items table to display default_price column
+ *
  * v1.8.0 (2025-11-18):
  *   - FIXED: PO item dropdown now shows items properly with unique query keys
  *   - FIXED: Add Stock item dropdown loading states
@@ -130,6 +138,7 @@ function AddItemDialog({ open, onClose, onSuccess }) {
     category: '',
     unit: '',
     default_supplier_id: '',
+    default_price: '',
     reorder_threshold: '0',
     min_stock_level: '0',
   });
@@ -186,6 +195,10 @@ function AddItemDialog({ open, onClose, onSuccess }) {
       newErrors.min_stock_level = 'Must be 0 or greater';
     }
 
+    if (formData.default_price && Number(formData.default_price) < 0) {
+      newErrors.default_price = 'Must be 0 or greater';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -205,6 +218,7 @@ function AddItemDialog({ open, onClose, onSuccess }) {
     if (formData.sku?.trim()) submitData.sku = formData.sku.trim();
     if (formData.category?.trim()) submitData.category = formData.category.trim();
     if (formData.default_supplier_id) submitData.default_supplier_id = Number(formData.default_supplier_id);
+    if (formData.default_price) submitData.default_price = Number(formData.default_price);
 
     createItemMutation.mutate(submitData);
   };
@@ -216,6 +230,7 @@ function AddItemDialog({ open, onClose, onSuccess }) {
       category: '',
       unit: '',
       default_supplier_id: '',
+      default_price: '',
       reorder_threshold: '0',
       min_stock_level: '0',
     });
@@ -263,22 +278,9 @@ function AddItemDialog({ open, onClose, onSuccess }) {
                   {cat.category}
                 </MenuItem>
               ))}
-              {/* Allow custom category entry */}
-              <MenuItem value="__custom__" disabled>
-                <em>Or enter custom below</em>
-              </MenuItem>
             </Select>
-            <FormHelperText>Select from existing or enter custom category</FormHelperText>
+            <FormHelperText>Select from existing categories. Create new categories in the Categories sub-module first.</FormHelperText>
           </FormControl>
-
-          <TextField
-            label="Custom Category"
-            fullWidth
-            value={formData.category && !categoriesData?.categories?.some(c => c.category === formData.category) ? formData.category : ''}
-            onChange={handleChange('category')}
-            placeholder="Enter custom category"
-            helperText="If category not in dropdown, type here"
-          />
 
           <TextField
             label="Unit of Measurement"
@@ -309,6 +311,17 @@ function AddItemDialog({ open, onClose, onSuccess }) {
             </Select>
             <FormHelperText>Optional - Preferred supplier for this item</FormHelperText>
           </FormControl>
+
+          <TextField
+            label="Default Price"
+            type="number"
+            fullWidth
+            value={formData.default_price}
+            onChange={handleChange('default_price')}
+            error={!!errors.default_price}
+            helperText={errors.default_price || 'Optional - Default unit price for this item'}
+            inputProps={{ min: 0, step: 0.01 }}
+          />
 
           <TextField
             label="Reorder Threshold"
@@ -352,8 +365,43 @@ function AddItemDialog({ open, onClose, onSuccess }) {
 
 // Items Page
 function ItemsPage() {
+  const queryClient = useQueryClient();
+  const { enqueueSnackbar } = useSnackbar();
   const { data, isLoading, error } = useQuery('inventoryItems', () => inventoryAPI.getItems());
   const [openAddDialog, setOpenAddDialog] = useState(false);
+  const [deleteConfirmDialog, setDeleteConfirmDialog] = useState({ open: false, item: null });
+
+  const deleteItemMutation = useMutation(
+    (itemId) => inventoryAPI.deleteItem(itemId),
+    {
+      onSuccess: () => {
+        enqueueSnackbar('Item deleted successfully', { variant: 'success' });
+        queryClient.invalidateQueries('inventoryItems');
+        queryClient.invalidateQueries('inventoryDashboard');
+        setDeleteConfirmDialog({ open: false, item: null });
+      },
+      onError: (error) => {
+        enqueueSnackbar(
+          `Failed to delete item: ${error.response?.data?.detail || error.message}`,
+          { variant: 'error' }
+        );
+      },
+    }
+  );
+
+  const handleDeleteClick = (item) => {
+    setDeleteConfirmDialog({ open: true, item });
+  };
+
+  const handleDeleteConfirm = () => {
+    if (deleteConfirmDialog.item) {
+      deleteItemMutation.mutate(deleteConfirmDialog.item.id);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteConfirmDialog({ open: false, item: null });
+  };
 
   if (isLoading) {
     return (
@@ -384,6 +432,33 @@ function ItemsPage() {
         onClose={() => setOpenAddDialog(false)}
       />
 
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteConfirmDialog.open} onClose={handleDeleteCancel}>
+        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete <strong>{deleteConfirmDialog.item?.item_name}</strong>?
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            This item will be marked as inactive. You cannot delete items with existing stock.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleDeleteCancel} disabled={deleteItemMutation.isLoading}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleDeleteConfirm}
+            color="error"
+            variant="contained"
+            disabled={deleteItemMutation.isLoading}
+            startIcon={deleteItemMutation.isLoading ? <CircularProgress size={20} /> : <DeleteIcon />}
+          >
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       <Card>
         <CardContent>
           <TableContainer>
@@ -393,10 +468,12 @@ function ItemsPage() {
                   <TableCell>Item Name</TableCell>
                   <TableCell>SKU</TableCell>
                   <TableCell>Category</TableCell>
+                  <TableCell>Default Price</TableCell>
                   <TableCell>Current Stock</TableCell>
                   <TableCell>Unit</TableCell>
                   <TableCell>Reorder Level</TableCell>
                   <TableCell>Status</TableCell>
+                  <TableCell>Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -405,6 +482,7 @@ function ItemsPage() {
                     <TableCell>{item.item_name}</TableCell>
                     <TableCell>{item.sku || '-'}</TableCell>
                     <TableCell>{item.category || '-'}</TableCell>
+                    <TableCell>{item.default_price ? formatCurrency(item.default_price) : '-'}</TableCell>
                     <TableCell>
                       {Number(item.current_qty) <= Number(item.reorder_threshold) ? (
                         <Chip
@@ -425,6 +503,16 @@ function ItemsPage() {
                         color={item.is_active ? 'success' : 'default'}
                         size="small"
                       />
+                    </TableCell>
+                    <TableCell>
+                      <IconButton
+                        size="small"
+                        onClick={() => handleDeleteClick(item)}
+                        color="error"
+                        title="Delete item"
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
                     </TableCell>
                   </TableRow>
                 ))}
