@@ -20,7 +20,7 @@
 #### Updated Services
 | File | Changes |
 |------|---------|
-| `auth_service.py` | - Record login attempts in login_history<br>- Create sessions on successful login |
+| `auth_service.py` | - Record login attempts in login_history<br>- Create sessions on successful login<br>- **Logout now revokes all active sessions** |
 | `main.py` | - Added security router<br>- Added rate limiting middleware |
 
 #### New Routes
@@ -87,6 +87,11 @@ Dashboard shows:
 - Failed logins in last 24 hours
 - Account lockouts in last 24 hours
 - Users with active sessions
+
+### Bug Fixes & Improvements
+- **Session Revocation on Logout:** Logout now properly revokes all active sessions in the database, fixing issue where sessions showed as active after logout
+- **Column Names:** Fixed SQL migration to use correct column names (`is_active`, `parent_module_id`)
+- **React Query Import:** Fixed SecurityDashboard to use `react-query` instead of `@tanstack/react-query`
 
 ---
 
@@ -171,6 +176,8 @@ Dashboard shows:
 ## Git Commits
 
 ```
+5d3834a fix: Revoke all active sessions on logout
+76a4d7f docs: Add comprehensive security features changelog (v1.2.0 & v1.3.0)
 68724e8 feat: Add role-based session limits (Admin: 5, User: 1)
 1c904cb fix: Enforce 30-min session timeout even when tab is closed/reopened
 f95c57a feat: Record login history and create sessions on login
