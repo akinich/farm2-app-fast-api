@@ -38,12 +38,56 @@ async def create_session(
     user_id: str,
     refresh_token: str,
     request: Request,
+    user_role: str = "User",
     expires_days: int = 7
 ) -> Dict:
     """
     Create a new session record when user logs in.
+
+    Session limits by role:
+    - Admin: 5 sessions max
+    - User: 1 session only (single session)
+
+    When limit exceeded, oldest session(s) are automatically revoked.
     """
     try:
+        # Role-based session limits
+        MAX_SESSIONS = {
+            "Admin": 5,
+            "User": 1
+        }
+        max_sessions = MAX_SESSIONS.get(user_role, 1)
+
+        # Get current active session count
+        current_sessions = await fetch_all(
+            """
+            SELECT id, created_at
+            FROM user_sessions
+            WHERE user_id = $1 AND is_active = TRUE AND expires_at > NOW()
+            ORDER BY created_at ASC
+            """,
+            user_id
+        )
+
+        # If at or over limit, revoke oldest sessions
+        if len(current_sessions) >= max_sessions:
+            sessions_to_revoke = len(current_sessions) - max_sessions + 1
+            sessions_to_delete = current_sessions[:sessions_to_revoke]
+
+            for session in sessions_to_delete:
+                await execute_query(
+                    """
+                    UPDATE user_sessions
+                    SET is_active = FALSE, revoked_at = NOW(), revoked_by = $1
+                    WHERE id = $2
+                    """,
+                    user_id,  # User revoked their own old session
+                    session["id"]
+                )
+
+            logger.info(f"Revoked {sessions_to_revoke} old session(s) for user {user_id} ({user_role})")
+
+        # Create new session
         token_hash = hash_token(refresh_token)
         device_info = request.headers.get("user-agent", "Unknown")
         ip_address = request.client.host if request.client else None

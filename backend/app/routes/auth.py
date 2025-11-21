@@ -107,11 +107,12 @@ async def login(credentials: LoginRequest, request: Request):
             status="success"
         )
 
-        # Create session
+        # Create session with role-based limits (Admin: 5, User: 1)
         await create_session(
             user_id=response["user"]["id"],
             refresh_token=response["refresh_token"],
-            request=request
+            request=request,
+            user_role=response["user"]["role"]
         )
 
         return response
