@@ -161,10 +161,10 @@ async def get_items_list(
             im.default_supplier_id, s.supplier_name as default_supplier_name,
             im.default_price, im.reorder_threshold, im.min_stock_level,
             im.current_qty, im.is_active, im.created_at,
-            (
+            CAST((
                 (SELECT COUNT(*) FROM inventory_transactions it WHERE it.item_master_id = im.id) +
                 (SELECT COUNT(*) FROM purchase_order_items poi WHERE poi.item_master_id = im.id)
-            ) as has_transactions
+            ) AS INTEGER) as has_transactions
         FROM item_master im
         LEFT JOIN suppliers s ON s.id = im.default_supplier_id
         {where_clause}
