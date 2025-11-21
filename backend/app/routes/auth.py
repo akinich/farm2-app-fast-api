@@ -2,11 +2,16 @@
 ================================================================================
 Farm Management System - Authentication Routes
 ================================================================================
-Version: 1.0.0
-Last Updated: 2025-11-17
+Version: 1.1.0
+Last Updated: 2025-11-21
 
 Changelog:
 ----------
+v1.1.0 (2025-11-21):
+  - Added POST /change-password - Change password for logged-in users
+  - Login now returns must_change_password flag
+  - Added 423 Locked response for account lockout
+
 v1.0.0 (2025-11-17):
   - Initial authentication endpoints
   - POST /login - User login
@@ -30,6 +35,8 @@ from app.schemas.auth import (
     ForgotPasswordResponse,
     ResetPasswordRequest,
     ResetPasswordResponse,
+    ChangePasswordRequest,
+    ChangePasswordResponse,
     CurrentUser,
     ErrorResponse,
 )
@@ -38,6 +45,7 @@ from app.services.auth_service import (
     refresh_access_token,
     send_password_reset_email,
     reset_password,
+    change_password,
     log_activity,
 )
 from app.auth.dependencies import get_current_user
@@ -59,23 +67,24 @@ router = APIRouter()
 
 @router.post(
     "/login",
-    response_model=LoginResponse,
     status_code=status.HTTP_200_OK,
     responses={
         200: {"description": "Login successful"},
         401: {"model": ErrorResponse, "description": "Invalid credentials"},
         403: {"model": ErrorResponse, "description": "Account inactive"},
+        423: {"model": ErrorResponse, "description": "Account locked"},
     },
     summary="User Login",
-    description="Authenticate user with email and password. Returns JWT tokens.",
+    description="Authenticate user with email and password. Returns JWT tokens and must_change_password flag.",
 )
 async def login(credentials: LoginRequest):
     """
     User login endpoint.
 
     - Validates email and password
-    - Returns access token, refresh token, and user info
+    - Returns access token, refresh token, user info, and must_change_password flag
     - Logs successful login activity
+    - Returns 423 Locked if account is locked due to failed attempts
     """
     try:
         response = await authenticate_user(credentials.email, credentials.password)
@@ -266,3 +275,48 @@ async def get_me(current_user: CurrentUser = Depends(get_current_user)):
     - Useful for frontend to verify token and get user details
     """
     return current_user
+
+
+# ============================================================================
+# CHANGE PASSWORD ENDPOINT
+# ============================================================================
+
+
+@router.post(
+    "/change-password",
+    response_model=ChangePasswordResponse,
+    status_code=status.HTTP_200_OK,
+    responses={
+        200: {"description": "Password changed successfully"},
+        400: {"model": ErrorResponse, "description": "Invalid new password"},
+        401: {"model": ErrorResponse, "description": "Current password incorrect"},
+    },
+    summary="Change Password",
+    description="Change password for logged-in user. Requires current password.",
+)
+async def change_password_endpoint(
+    request: ChangePasswordRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    """
+    Change password endpoint for authenticated users.
+
+    - Requires current password for verification
+    - Validates new password strength
+    - Clears must_change_password flag on success
+    """
+    try:
+        result = await change_password(
+            user_id=current_user.id,
+            current_password=request.current_password,
+            new_password=request.new_password,
+        )
+        return ChangePasswordResponse(**result)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Change password error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An error occurred while changing password",
+        )

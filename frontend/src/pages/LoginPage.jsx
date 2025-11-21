@@ -40,8 +40,13 @@ export default function LoginPage() {
     const result = await login(email, password);
 
     if (result.success) {
-      enqueueSnackbar('Login successful!', { variant: 'success' });
-      navigate('/dashboard');
+      if (result.mustChangePassword) {
+        enqueueSnackbar('Please change your password before continuing', { variant: 'warning' });
+        navigate('/change-password');
+      } else {
+        enqueueSnackbar('Login successful!', { variant: 'success' });
+        navigate('/dashboard');
+      }
     } else {
       enqueueSnackbar(result.error || 'Login failed', { variant: 'error' });
     }
