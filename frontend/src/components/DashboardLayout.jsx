@@ -156,9 +156,25 @@ export default function DashboardLayout() {
 
   // Set up activity listeners
   useEffect(() => {
+    // Check if session expired while tab was closed
+    const lastActivity = localStorage.getItem('last_activity');
+    if (lastActivity) {
+      const timeSinceLastActivity = Date.now() - parseInt(lastActivity);
+      if (timeSinceLastActivity > SESSION_TIMEOUT) {
+        // Session expired while tab was closed
+        enqueueSnackbar('Session expired due to inactivity', { variant: 'warning' });
+        logout();
+        navigate('/login');
+        return;
+      }
+    }
+
     const activityEvents = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart', 'click'];
 
     const handleActivity = () => {
+      // Store last activity timestamp
+      localStorage.setItem('last_activity', Date.now().toString());
+
       // Only reset timer if warning is not shown
       if (!isWarningShownRef.current) {
         resetTimer();
@@ -170,7 +186,8 @@ export default function DashboardLayout() {
       document.addEventListener(event, handleActivity);
     });
 
-    // Initialize timer
+    // Initialize timer and set initial last activity
+    localStorage.setItem('last_activity', Date.now().toString());
     resetTimer();
 
     // Cleanup
@@ -182,7 +199,7 @@ export default function DashboardLayout() {
       if (warningTimeoutRef.current) clearTimeout(warningTimeoutRef.current);
       if (countdownRef.current) clearInterval(countdownRef.current);
     };
-  }, [resetTimer]);
+  }, [resetTimer, logout, navigate, enqueueSnackbar]);
 
   // Fetch user accessible modules
   useEffect(() => {
