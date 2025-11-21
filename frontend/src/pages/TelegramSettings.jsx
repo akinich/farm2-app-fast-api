@@ -1,10 +1,17 @@
 /**
  * Telegram Notifications Settings Page
- * Version: 1.0.0
- * Last Updated: 2025-11-20
+ * Version: 1.1.0
+ * Last Updated: 2025-11-21
  *
  * Changelog:
  * ----------
+ * v1.1.0 (2025-11-21):
+ *   - Added granular event-level notification toggles
+ *   - Tickets: created, updated, closed, comment, priority_changed
+ *   - POs: created, status_changed
+ *   - Inventory: first_alert, daily_summary
+ *   - Expandable event toggles shown when channel notifications enabled
+ *
  * v1.0.0 (2025-11-20):
  *   - Initial Telegram notifications settings page
  *   - Bot status indicator with health check
