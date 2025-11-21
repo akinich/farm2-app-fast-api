@@ -2,11 +2,14 @@
 ================================================================================
 Farm Management System - Inventory Service Layer
 ================================================================================
-Version: 1.8.1
+Version: 1.8.2
 Last Updated: 2025-11-21
 
 Changelog:
 ----------
+v1.8.2 (2025-11-21):
+  - BUGFIX: Use CASE WHEN EXISTS for more reliable boolean return in has_transactions
+
 v1.8.1 (2025-11-21):
   - BUGFIX: has_transactions now also checks purchase_order_items table
   - BUGFIX: hard_delete_item() now checks both inventory_transactions and purchase_order_items

@@ -1,10 +1,13 @@
 /**
  * Inventory Module - Items, Stock, Purchase Orders, Alerts
- * Version: 2.1.0
+ * Version: 2.1.1
  * Last Updated: 2025-11-21
  *
  * Changelog:
  * ----------
+ * v2.1.1 (2025-11-21):
+ *   - BUGFIX: Use strict equality check (=== false) for has_transactions to handle undefined/null
+ *
  * v2.1.0 (2025-11-21):
  *   - ENHANCEMENT: Permanent delete button now hidden for items with transaction history
  *   - Items with transactions can only be deactivated, not permanently deleted
