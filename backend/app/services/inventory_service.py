@@ -2,11 +2,14 @@
 ================================================================================
 Farm Management System - Inventory Service Layer
 ================================================================================
-Version: 1.8.2
+Version: 1.8.3
 Last Updated: 2025-11-21
 
 Changelog:
 ----------
+v1.8.3 (2025-11-21):
+  - BUGFIX: has_transactions now returns integer count instead of boolean for reliable cross-stack handling
+
 v1.8.2 (2025-11-21):
   - BUGFIX: Use CASE WHEN EXISTS for more reliable boolean return in has_transactions
 
@@ -158,10 +161,10 @@ async def get_items_list(
             im.default_supplier_id, s.supplier_name as default_supplier_name,
             im.default_price, im.reorder_threshold, im.min_stock_level,
             im.current_qty, im.is_active, im.created_at,
-            CASE WHEN (
-                EXISTS(SELECT 1 FROM inventory_transactions it WHERE it.item_master_id = im.id)
-                OR EXISTS(SELECT 1 FROM purchase_order_items poi WHERE poi.item_master_id = im.id)
-            ) THEN true ELSE false END as has_transactions
+            (
+                (SELECT COUNT(*) FROM inventory_transactions it WHERE it.item_master_id = im.id) +
+                (SELECT COUNT(*) FROM purchase_order_items poi WHERE poi.item_master_id = im.id)
+            ) as has_transactions
         FROM item_master im
         LEFT JOIN suppliers s ON s.id = im.default_supplier_id
         {where_clause}
