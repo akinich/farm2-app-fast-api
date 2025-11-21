@@ -248,8 +248,10 @@ async def send_message(chat_id: int, message: str, parse_mode: str = "Markdown")
 
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
+            logger.info(f"Sending message to chat_id: {chat_id}")
             response = await client.post(api_url, json=payload)
             data = response.json()
+            logger.info(f"Telegram API response: {data}")
 
             if response.status_code == 200 and data.get("ok"):
                 logger.info(f"Message sent successfully to chat {chat_id}")
