@@ -2,11 +2,16 @@
 ================================================================================
 Farm Management System - Inventory Service Layer
 ================================================================================
-Version: 1.8.0
+Version: 1.8.1
 Last Updated: 2025-11-21
 
 Changelog:
 ----------
+v1.8.1 (2025-11-21):
+  - BUGFIX: has_transactions now also checks purchase_order_items table
+  - BUGFIX: hard_delete_item() now checks both inventory_transactions and purchase_order_items
+  - Better error messages showing specific reasons (transactions and/or purchase orders)
+
 v1.8.0 (2025-11-21):
   - Added has_transactions flag to get_items_list() response
   - Added transaction check in hard_delete_item() - prevents deletion of items with transaction history
@@ -150,7 +155,10 @@ async def get_items_list(
             im.default_supplier_id, s.supplier_name as default_supplier_name,
             im.default_price, im.reorder_threshold, im.min_stock_level,
             im.current_qty, im.is_active, im.created_at,
-            (SELECT COUNT(*) > 0 FROM inventory_transactions it WHERE it.item_master_id = im.id) as has_transactions
+            (
+                (SELECT COUNT(*) > 0 FROM inventory_transactions it WHERE it.item_master_id = im.id)
+                OR (SELECT COUNT(*) > 0 FROM purchase_order_items poi WHERE poi.item_master_id = im.id)
+            ) as has_transactions
         FROM item_master im
         LEFT JOIN suppliers s ON s.id = im.default_supplier_id
         {where_clause}
@@ -367,15 +375,27 @@ async def hard_delete_item(item_id: int) -> None:
             detail=f"Cannot permanently delete item '{item['item_name']}' because it still has stock ({item['current_qty']}). Please clear all stock first.",
         )
 
-    # Check if item has any inventory transactions
+    # Check if item has any inventory transactions or purchase order items
     transaction_count = await fetch_one(
-        "SELECT COUNT(*) as count FROM inventory_transactions WHERE item_master_id = $1",
+        """
+        SELECT
+            (SELECT COUNT(*) FROM inventory_transactions WHERE item_master_id = $1) as inv_count,
+            (SELECT COUNT(*) FROM purchase_order_items WHERE item_master_id = $1) as po_count
+        """,
         item_id
     )
-    if transaction_count and transaction_count["count"] > 0:
+    inv_count = transaction_count["inv_count"] if transaction_count else 0
+    po_count = transaction_count["po_count"] if transaction_count else 0
+
+    if inv_count > 0 or po_count > 0:
+        reasons = []
+        if inv_count > 0:
+            reasons.append(f"{inv_count} inventory transaction(s)")
+        if po_count > 0:
+            reasons.append(f"{po_count} purchase order(s)")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Cannot permanently delete item '{item['item_name']}' because it has {transaction_count['count']} inventory transaction(s). Items with transaction history cannot be permanently deleted - they can only be deactivated.",
+            detail=f"Cannot permanently delete item '{item['item_name']}' because it has {' and '.join(reasons)}. Items with history cannot be permanently deleted - they can only be deactivated.",
         )
 
     # Hard delete - remove from database
