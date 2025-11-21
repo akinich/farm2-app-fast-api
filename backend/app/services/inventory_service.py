@@ -2,11 +2,16 @@
 ================================================================================
 Farm Management System - Inventory Service Layer
 ================================================================================
-Version: 1.7.0
+Version: 1.8.0
 Last Updated: 2025-11-21
 
 Changelog:
 ----------
+v1.8.0 (2025-11-21):
+  - Added has_transactions flag to get_items_list() response
+  - Added transaction check in hard_delete_item() - prevents deletion of items with transaction history
+  - Returns proper error message instead of 500 error for FK constraint violation
+
 v1.7.0 (2025-11-21):
   - Added hard_delete_item() for permanent deletion of inactive items
   - Only inactive items can be permanently deleted (is_active = FALSE)
@@ -144,7 +149,8 @@ async def get_items_list(
             im.id, im.item_name, im.sku, im.category, im.unit,
             im.default_supplier_id, s.supplier_name as default_supplier_name,
             im.default_price, im.reorder_threshold, im.min_stock_level,
-            im.current_qty, im.is_active, im.created_at
+            im.current_qty, im.is_active, im.created_at,
+            (SELECT COUNT(*) > 0 FROM inventory_transactions it WHERE it.item_master_id = im.id) as has_transactions
         FROM item_master im
         LEFT JOIN suppliers s ON s.id = im.default_supplier_id
         {where_clause}
@@ -359,6 +365,17 @@ async def hard_delete_item(item_id: int) -> None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Cannot permanently delete item '{item['item_name']}' because it still has stock ({item['current_qty']}). Please clear all stock first.",
+        )
+
+    # Check if item has any inventory transactions
+    transaction_count = await fetch_one(
+        "SELECT COUNT(*) as count FROM inventory_transactions WHERE item_master_id = $1",
+        item_id
+    )
+    if transaction_count and transaction_count["count"] > 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot permanently delete item '{item['item_name']}' because it has {transaction_count['count']} inventory transaction(s). Items with transaction history cannot be permanently deleted - they can only be deactivated.",
         )
 
     # Hard delete - remove from database
