@@ -2,11 +2,14 @@
 ================================================================================
 Farm Management System - Inventory Service Layer
 ================================================================================
-Version: 1.8.3
+Version: 1.8.4
 Last Updated: 2025-11-21
 
 Changelog:
 ----------
+v1.8.4 (2025-11-21):
+  - BUGFIX: Explicit CAST to INTEGER for has_transactions to ensure proper type serialization
+
 v1.8.3 (2025-11-21):
   - BUGFIX: has_transactions now returns integer count instead of boolean for reliable cross-stack handling
 
