@@ -657,7 +657,7 @@ function ItemsPage() {
                           >
                             <RestoreIcon fontSize="small" />
                           </IconButton>
-                          {!item.has_transactions && (
+                          {item.has_transactions === false && (
                             <IconButton
                               size="small"
                               onClick={() => handleHardDeleteClick(item)}
