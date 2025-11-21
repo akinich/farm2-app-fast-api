@@ -1,10 +1,16 @@
 /**
  * Inventory Module - Items, Stock, Purchase Orders, Alerts
- * Version: 1.9.0
+ * Version: 1.9.1
  * Last Updated: 2025-11-21
  *
  * Changelog:
  * ----------
+ * v1.9.1 (2025-11-21):
+ *   - FEATURE: Added reactivate functionality for inactive items
+ *   - Added "Show Status" filter dropdown (Active Only / All Items)
+ *   - Inactive items now show Reactivate button instead of Delete
+ *   - Enhanced UX with status filtering and reactivation capability
+ *
  * v1.9.0 (2025-11-21):
  *   - BREAKING: Removed custom category input - categories must be selected from dropdown only
  *   - FEATURE: Added default_price field (optional, 2 decimal precision)
@@ -121,6 +127,7 @@ import {
   Search as SearchIcon,
   TrendingUp as TrendingUpIcon,
   TrendingDown as TrendingDownIcon,
+  Restore as RestoreIcon,
 } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useSnackbar } from 'notistack';
@@ -370,19 +377,37 @@ function ItemsPage() {
   const { data, isLoading, error } = useQuery('inventoryItems', () => inventoryAPI.getItems());
   const [openAddDialog, setOpenAddDialog] = useState(false);
   const [deleteConfirmDialog, setDeleteConfirmDialog] = useState({ open: false, item: null });
+  const [showInactive, setShowInactive] = useState(false);
 
   const deleteItemMutation = useMutation(
     (itemId) => inventoryAPI.deleteItem(itemId),
     {
       onSuccess: () => {
-        enqueueSnackbar('Item deleted successfully', { variant: 'success' });
+        enqueueSnackbar('Item deactivated successfully', { variant: 'success' });
         queryClient.invalidateQueries('inventoryItems');
         queryClient.invalidateQueries('inventoryDashboard');
         setDeleteConfirmDialog({ open: false, item: null });
       },
       onError: (error) => {
         enqueueSnackbar(
-          `Failed to delete item: ${error.response?.data?.detail || error.message}`,
+          `Failed to deactivate item: ${error.response?.data?.detail || error.message}`,
+          { variant: 'error' }
+        );
+      },
+    }
+  );
+
+  const reactivateItemMutation = useMutation(
+    ({ itemId, itemName }) => inventoryAPI.updateItem(itemId, { is_active: true }),
+    {
+      onSuccess: (data, variables) => {
+        enqueueSnackbar(`Item "${variables.itemName}" reactivated successfully`, { variant: 'success' });
+        queryClient.invalidateQueries('inventoryItems');
+        queryClient.invalidateQueries('inventoryDashboard');
+      },
+      onError: (error) => {
+        enqueueSnackbar(
+          `Failed to reactivate item: ${error.response?.data?.detail || error.message}`,
           { variant: 'error' }
         );
       },
@@ -403,6 +428,15 @@ function ItemsPage() {
     setDeleteConfirmDialog({ open: false, item: null });
   };
 
+  const handleReactivateClick = (item) => {
+    reactivateItemMutation.mutate({ itemId: item.id, itemName: item.item_name });
+  };
+
+  // Filter items based on showInactive toggle
+  const filteredItems = showInactive
+    ? data?.items
+    : data?.items?.filter(item => item.is_active);
+
   if (isLoading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
@@ -421,9 +455,23 @@ function ItemsPage() {
         <Typography variant="h5" fontWeight="bold">
           Inventory Items
         </Typography>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => setOpenAddDialog(true)}>
-          Add Item
-        </Button>
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+          <FormControl>
+            <FormHelperText sx={{ mt: 0, mb: 0.5 }}>Show Status</FormHelperText>
+            <Select
+              size="small"
+              value={showInactive}
+              onChange={(e) => setShowInactive(e.target.value)}
+              sx={{ minWidth: 150 }}
+            >
+              <MenuItem value={false}>Active Only</MenuItem>
+              <MenuItem value={true}>All Items</MenuItem>
+            </Select>
+          </FormControl>
+          <Button variant="contained" startIcon={<AddIcon />} onClick={() => setOpenAddDialog(true)}>
+            Add Item
+          </Button>
+        </Box>
       </Box>
 
       {/* Add Item Dialog */}
@@ -477,7 +525,7 @@ function ItemsPage() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {data?.items?.map((item) => (
+                {filteredItems?.map((item) => (
                   <TableRow key={item.id}>
                     <TableCell>{item.item_name}</TableCell>
                     <TableCell>{item.sku || '-'}</TableCell>
@@ -505,14 +553,26 @@ function ItemsPage() {
                       />
                     </TableCell>
                     <TableCell>
-                      <IconButton
-                        size="small"
-                        onClick={() => handleDeleteClick(item)}
-                        color="error"
-                        title="Delete item"
-                      >
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
+                      {item.is_active ? (
+                        <IconButton
+                          size="small"
+                          onClick={() => handleDeleteClick(item)}
+                          color="error"
+                          title="Deactivate item"
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      ) : (
+                        <IconButton
+                          size="small"
+                          onClick={() => handleReactivateClick(item)}
+                          color="success"
+                          title="Reactivate item"
+                          disabled={reactivateItemMutation.isLoading}
+                        >
+                          <RestoreIcon fontSize="small" />
+                        </IconButton>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
