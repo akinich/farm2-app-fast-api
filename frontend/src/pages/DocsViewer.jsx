@@ -38,7 +38,6 @@ import {
   Paper,
   CircularProgress,
   Alert,
-  Container,
   Button,
   Drawer,
   List,
@@ -132,37 +131,76 @@ export default function DocsViewer() {
 
   if (error || !doc) {
     return (
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Box sx={{ p: 3 }}>
         <Alert severity="error" sx={{ mb: 3 }}>
           {error || 'Document not found'}
         </Alert>
         <Button startIcon={<ArrowBackIcon />} onClick={handleBack}>
           Back to Documentation
         </Button>
-      </Container>
+      </Box>
     );
   }
 
   const mainHeaders = toc.filter((item) => item.level === 2);
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
-      {/* Table of Contents Drawer */}
-      {toc.length > 0 && (
+    <Box sx={{ display: 'flex', minHeight: 'calc(100vh - 64px)' }}>
+      {/* Table of Contents Sidebar */}
+      {toc.length > 0 && !isMobile && (
+        <Box
+          sx={{
+            width: 250,
+            flexShrink: 0,
+            borderRight: '1px solid',
+            borderColor: 'divider',
+            bgcolor: 'background.paper',
+            position: 'sticky',
+            top: 64,
+            height: 'calc(100vh - 64px)',
+            overflowY: 'auto',
+          }}
+        >
+          <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography variant="h6" fontWeight="bold">
+              Contents
+            </Typography>
+          </Box>
+
+          <List dense>
+            {mainHeaders.map((item, index) => (
+              <ListItem
+                button
+                key={index}
+                onClick={() => scrollToAnchor(item.anchor)}
+                sx={{
+                  pl: item.level + 1,
+                  '&:hover': { bgcolor: 'action.hover' },
+                }}
+              >
+                <ListItemText
+                  primary={item.title}
+                  primaryTypographyProps={{
+                    fontSize: '0.9rem',
+                    fontWeight: item.level === 2 ? 'bold' : 'normal',
+                  }}
+                />
+              </ListItem>
+            ))}
+          </List>
+        </Box>
+      )}
+
+      {/* Mobile TOC Drawer */}
+      {toc.length > 0 && isMobile && (
         <Drawer
-          variant={isMobile ? 'temporary' : 'permanent'}
+          variant="temporary"
           open={tocOpen}
           onClose={() => setTocOpen(false)}
           sx={{
-            width: isMobile ? 250 : 280,
-            flexShrink: 0,
             '& .MuiDrawer-paper': {
-              width: isMobile ? 250 : 280,
+              width: 250,
               boxSizing: 'border-box',
-              top: isMobile ? 0 : 64,
-              height: isMobile ? '100%' : 'calc(100% - 64px)',
-              borderRight: '1px solid',
-              borderColor: 'divider',
             },
           }}
         >
@@ -170,13 +208,10 @@ export default function DocsViewer() {
             <Typography variant="h6" fontWeight="bold">
               Contents
             </Typography>
-            {isMobile && (
-              <IconButton onClick={() => setTocOpen(false)} size="small">
-                <CloseIcon />
-              </IconButton>
-            )}
+            <IconButton onClick={() => setTocOpen(false)} size="small">
+              <CloseIcon />
+            </IconButton>
           </Box>
-
           <List dense>
             {mainHeaders.map((item, index) => (
               <ListItem
@@ -207,10 +242,9 @@ export default function DocsViewer() {
         sx={{
           flexGrow: 1,
           p: 3,
-          ml: !isMobile && toc.length > 0 ? '280px' : 0,
+          minWidth: 0,
         }}
       >
-        <Container maxWidth="md">
           {/* Header */}
           <Box mb={3}>
             <Button
@@ -295,7 +329,6 @@ export default function DocsViewer() {
               }}
             />
           </Paper>
-        </Container>
       </Box>
     </Box>
   );
