@@ -479,7 +479,7 @@ export const telegramAPI = {
 };
 
 // Export all APIs
-export { authAPI, bioflocAPI, docsAPI, apiClient, telegramAPI };
+export { authAPI, bioflocAPI, docsAPI, apiClient };
 export default {
   auth: authAPI,
   dashboard: dashboardAPI,
