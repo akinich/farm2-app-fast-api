@@ -1,11 +1,15 @@
 """
 Telegram Notification Schemas
-Version: 1.1.0
+Version: 1.2.0
 Created: 2025-11-20
 Updated: 2025-11-21
 
 Changelog:
 ----------
+v1.2.0 (2025-11-21):
+  - Added granular notification toggle fields to NotificationSettingsResponse
+  - Fixes toggle state not being returned to frontend
+
 v1.1.0 (2025-11-21):
   - Added granular notification toggle fields to UpdateSettingsRequest
   - Tickets: notify_ticket_created, updated, closed, comment, priority_changed
@@ -106,30 +110,40 @@ class TestNotificationRequest(BaseModel):
 
 class NotificationSettingsResponse(BaseModel):
     """Response with all notification settings"""
-    tickets_channel_id: Optional[int]
-    po_channel_id: Optional[int]
-    inventory_channel_id: Optional[int]
-    enable_ticket_notifications: bool
-    enable_po_notifications: bool
-    enable_inventory_notifications: bool
-    enable_personal_notifications: bool
-    bot_status: str
-    last_health_check: Optional[str]
-    last_error: Optional[str]
+    tickets_channel_id: Optional[int] = None
+    po_channel_id: Optional[int] = None
+    inventory_channel_id: Optional[int] = None
+    enable_ticket_notifications: Optional[bool] = True
+    enable_po_notifications: Optional[bool] = True
+    enable_inventory_notifications: Optional[bool] = True
+    enable_personal_notifications: Optional[bool] = False
+    bot_status: Optional[str] = "inactive"
+    last_health_check: Optional[str] = None
+    last_error: Optional[str] = None
+
+    # Granular ticket notification settings
+    notify_ticket_created: Optional[bool] = True
+    notify_ticket_updated: Optional[bool] = True
+    notify_ticket_closed: Optional[bool] = True
+    notify_ticket_comment: Optional[bool] = True
+    notify_ticket_priority_changed: Optional[bool] = True
+
+    # Granular PO notification settings
+    notify_po_created: Optional[bool] = True
+    notify_po_status_changed: Optional[bool] = True
+
+    # Granular inventory notification settings
+    notify_low_stock_first_alert: Optional[bool] = True
+    notify_low_stock_daily_summary: Optional[bool] = True
 
     class Config:
         json_schema_extra = {
             "example": {
                 "tickets_channel_id": -1001234567890,
-                "po_channel_id": -1001234567891,
-                "inventory_channel_id": -1001234567892,
                 "enable_ticket_notifications": True,
-                "enable_po_notifications": True,
-                "enable_inventory_notifications": True,
-                "enable_personal_notifications": False,
-                "bot_status": "active",
-                "last_health_check": "2025-11-20T10:30:00Z",
-                "last_error": None
+                "notify_ticket_created": True,
+                "notify_ticket_updated": True,
+                "bot_status": "active"
             }
         }
 
