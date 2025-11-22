@@ -1,8 +1,11 @@
 /**
  * Main App Component
- * Version: 1.2.0
+ * Version: 1.3.0
  *
  * Changelog:
+ * v1.3.0 (2025-11-22):
+ *   - Added WebhooksPage route at /webhooks
+ *
  * v1.2.0 (2025-11-21):
  *   - Added UserProfilePage route at /profile
  *
@@ -24,6 +27,7 @@ import DashboardLayout from './components/DashboardLayout';
 import DashboardHome from './pages/DashboardHome';
 import AdminPanel from './pages/AdminPanel';
 import SettingsPage from './pages/SettingsPage';
+import WebhooksPage from './pages/WebhooksPage';
 import InventoryModule from './pages/InventoryModule';
 import BioflocModule from './pages/BioflocModule';
 import TicketsModule from './pages/TicketsModule';
@@ -79,6 +83,7 @@ function App() {
         <Route path="profile" element={<UserProfilePage />} />
         <Route path="admin/*" element={<AdminPanel />} />
         <Route path="settings" element={<SettingsPage />} />
+        <Route path="webhooks" element={<WebhooksPage />} />
         <Route path="inventory/*" element={<InventoryModule />} />
         <Route path="biofloc/*" element={<BioflocModule />} />
         <Route path="tickets/*" element={<TicketsModule />} />
