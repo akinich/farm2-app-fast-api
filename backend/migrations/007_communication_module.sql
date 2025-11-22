@@ -119,31 +119,31 @@ BEGIN
     SELECT id INTO websockets_module_id FROM modules WHERE module_key = 'com_websockets';
 
     -- Grant access to all admin users
-    FOR admin_user IN SELECT user_id FROM user_profiles WHERE role_id = admin_role_id
+    FOR admin_user IN SELECT id FROM user_profiles WHERE role_id = admin_role_id
     LOOP
         -- Communication parent
         INSERT INTO user_module_permissions (user_id, module_id)
-        VALUES (admin_user.user_id, comm_module_id)
+        VALUES (admin_user.id, comm_module_id)
         ON CONFLICT (user_id, module_id) DO NOTHING;
 
         -- SMTP
         INSERT INTO user_module_permissions (user_id, module_id)
-        VALUES (admin_user.user_id, smtp_module_id)
+        VALUES (admin_user.id, smtp_module_id)
         ON CONFLICT (user_id, module_id) DO NOTHING;
 
         -- Webhooks
         INSERT INTO user_module_permissions (user_id, module_id)
-        VALUES (admin_user.user_id, webhooks_module_id)
+        VALUES (admin_user.id, webhooks_module_id)
         ON CONFLICT (user_id, module_id) DO NOTHING;
 
         -- API Keys
         INSERT INTO user_module_permissions (user_id, module_id)
-        VALUES (admin_user.user_id, api_keys_module_id)
+        VALUES (admin_user.id, api_keys_module_id)
         ON CONFLICT (user_id, module_id) DO NOTHING;
 
         -- WebSockets
         INSERT INTO user_module_permissions (user_id, module_id)
-        VALUES (admin_user.user_id, websockets_module_id)
+        VALUES (admin_user.id, websockets_module_id)
         ON CONFLICT (user_id, module_id) DO NOTHING;
     END LOOP;
 
