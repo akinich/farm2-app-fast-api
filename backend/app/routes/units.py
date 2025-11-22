@@ -18,7 +18,7 @@ from app.schemas.units import (
     DeleteUnitResponse
 )
 from app.services import units_service
-from app.middleware.auth import get_current_user
+from app.auth.dependencies import get_current_user
 
 router = APIRouter(prefix="/units", tags=["Units of Measurement"])
 
