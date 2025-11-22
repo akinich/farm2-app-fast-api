@@ -661,8 +661,8 @@ export const telegramAPI = {
   },
 };
 
-// Export all APIs
-export { authAPI, bioflocAPI, docsAPI, unitsAPI, apiClient };
+// Export all APIs (only re-export imported APIs, others already exported above)
+export { authAPI, bioflocAPI, docsAPI, apiClient };
 export default {
   auth: authAPI,
   dashboard: dashboardAPI,
