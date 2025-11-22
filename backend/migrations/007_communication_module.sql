@@ -8,13 +8,12 @@
 -- ============================================================================
 
 -- Step 1: Create Communication parent module
-INSERT INTO modules (module_key, name, description, icon, route_path, is_active, display_order, parent_module_id)
+INSERT INTO modules (module_key, module_name, description, icon, is_active, display_order, parent_module_id)
 VALUES (
     'communication',
     'Communication',
     'Manage all communication channels: Email, Telegram, Webhooks, API Keys, and Real-time notifications',
-    'Communication',
-    '/communication',
+    '📡',
     true,
     50,
     NULL
@@ -48,52 +47,48 @@ BEGIN
     END IF;
 
     -- Create SMTP Email child module
-    INSERT INTO modules (module_key, name, description, icon, route_path, is_active, display_order, parent_module_id)
+    INSERT INTO modules (module_key, module_name, description, icon, is_active, display_order, parent_module_id)
     VALUES (
         'com_smtp',
         'Email (SMTP)',
         'Configure SMTP email settings, manage email templates, and send notifications',
-        'Email',
-        '/communication/smtp',
+        '📧',
         true,
         2,
         comm_module_id
     ) ON CONFLICT (module_key) DO NOTHING;
 
     -- Create Webhooks child module
-    INSERT INTO modules (module_key, name, description, icon, route_path, is_active, display_order, parent_module_id)
+    INSERT INTO modules (module_key, module_name, description, icon, is_active, display_order, parent_module_id)
     VALUES (
         'com_webhooks',
         'Webhooks',
         'Manage outgoing webhooks for event-driven integrations',
-        'Webhook',
-        '/communication/webhooks',
+        '🔗',
         true,
         3,
         comm_module_id
     ) ON CONFLICT (module_key) DO NOTHING;
 
     -- Create API Keys child module
-    INSERT INTO modules (module_key, name, description, icon, route_path, is_active, display_order, parent_module_id)
+    INSERT INTO modules (module_key, module_name, description, icon, is_active, display_order, parent_module_id)
     VALUES (
         'com_api_keys',
         'API Keys',
         'Manage API keys for programmatic access and automation',
-        'VpnKey',
-        '/communication/api-keys',
+        '🔑',
         true,
         4,
         comm_module_id
     ) ON CONFLICT (module_key) DO NOTHING;
 
     -- Create WebSockets child module
-    INSERT INTO modules (module_key, name, description, icon, route_path, is_active, display_order, parent_module_id)
+    INSERT INTO modules (module_key, module_name, description, icon, is_active, display_order, parent_module_id)
     VALUES (
         'com_websockets',
         'Real-time (WebSocket)',
         'Configure real-time notifications and live updates',
-        'Notifications',
-        '/communication/websockets',
+        '🔔',
         true,
         5,
         comm_module_id
@@ -159,9 +154,9 @@ END $$;
 SELECT
     m.id,
     m.module_key,
-    m.name,
+    m.module_name,
     CASE WHEN m.parent_module_id IS NULL THEN 'Parent' ELSE 'Child' END as type,
-    p.name as parent_name,
+    p.module_name as parent_name,
     m.display_order,
     m.is_active
 FROM modules m
