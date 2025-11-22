@@ -1,10 +1,15 @@
 /**
  * Dashboard Layout with Sidebar Navigation
- * Version: 1.6.0
+ * Version: 1.7.0
  * Last Updated: 2025-11-22
  *
  * Changelog:
  * ----------
+ * v1.7.0 (2025-11-22):
+ *   - Integrated WebSocket real-time notifications
+ *   - Show toast notifications for ticket created/updated events
+ *   - Listen for user online/offline presence updates
+ *
  * v1.6.0 (2025-11-22):
  *   - Auto-expand parent module in sidebar based on current URL path
  *   - Fixes issue where refreshing a sub-module page (e.g., /admin/users) collapsed the sidebar
@@ -89,6 +94,7 @@ import { useSnackbar } from 'notistack';
 
 import useAuthStore from '../store/authStore';
 import { dashboardAPI } from '../api';
+import websocketService from '../services/websocket';
 
 const DRAWER_WIDTH = 260;
 const SESSION_TIMEOUT = 30 * 60 * 1000; // 2 minutes in milliseconds (for testing)
@@ -224,6 +230,45 @@ export default function DashboardLayout() {
 
     fetchModules();
   }, []);
+
+  // Set up WebSocket event listeners for real-time notifications
+  useEffect(() => {
+    // Listen for ticket created events
+    const handleTicketCreated = (data) => {
+      enqueueSnackbar(`New ticket created: ${data.title}`, {
+        variant: 'info',
+        autoHideDuration: 5000
+      });
+    };
+
+    // Listen for ticket updated events
+    const handleTicketUpdated = (data) => {
+      enqueueSnackbar(`Ticket updated: ${data.title}`, {
+        variant: 'info',
+        autoHideDuration: 5000
+      });
+    };
+
+    // Listen for notifications
+    const handleNotification = (data) => {
+      enqueueSnackbar(data.message, {
+        variant: data.type || 'info',
+        autoHideDuration: 5000
+      });
+    };
+
+    // Register listeners
+    websocketService.on('ticket.created', handleTicketCreated);
+    websocketService.on('ticket.updated', handleTicketUpdated);
+    websocketService.on('notification', handleNotification);
+
+    // Cleanup
+    return () => {
+      websocketService.off('ticket.created', handleTicketCreated);
+      websocketService.off('ticket.updated', handleTicketUpdated);
+      websocketService.off('notification', handleNotification);
+    };
+  }, [enqueueSnackbar]);
 
   // Auto-expand parent module based on current path
   useEffect(() => {

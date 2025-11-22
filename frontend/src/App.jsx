@@ -1,8 +1,12 @@
 /**
  * Main App Component
- * Version: 1.2.0
+ * Version: 1.3.0
  *
  * Changelog:
+ * v1.3.0 (2025-11-22):
+ *   - Integrated WebSocket service for real-time notifications
+ *   - Auto-connect/disconnect WebSocket based on authentication state
+ *
  * v1.2.0 (2025-11-21):
  *   - Added UserProfilePage route at /profile
  *
@@ -11,9 +15,10 @@
  *   - Added mustChangePassword redirect logic
  */
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import useAuthStore from './store/authStore';
+import websocketService from './services/websocket';
 
 // Pages
 import LoginPage from './pages/LoginPage';
@@ -49,6 +54,29 @@ const ProtectedRoute = ({ children, allowChangePassword = false }) => {
 };
 
 function App() {
+  const user = useAuthStore((state) => state.user);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+
+  // Initialize WebSocket connection when user logs in
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      const token = localStorage.getItem('access_token');
+      if (token) {
+        console.log('Initializing WebSocket connection...');
+        websocketService.connect(token);
+      }
+    } else {
+      // Disconnect when user logs out
+      console.log('Disconnecting WebSocket...');
+      websocketService.disconnect();
+    }
+
+    // Cleanup on unmount
+    return () => {
+      websocketService.disconnect();
+    };
+  }, [user, isAuthenticated]);
+
   return (
     <Routes>
       {/* Public Routes */}
