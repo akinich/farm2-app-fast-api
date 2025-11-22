@@ -2178,7 +2178,13 @@ async def update_purchase_order_with_validation(po_id: int, request, user_id: st
 async def create_stock_adjustment(
     request: CreateAdjustmentRequest, user_id: str
 ) -> Dict:
-    """Create stock adjustment"""
+    """
+    Create stock adjustment.
+
+    IMPORTANT: When decreasing stock, this function deducts from batches using FIFO
+    to ensure inventory value is correctly updated. The database trigger will then
+    automatically sync item_master.current_qty with the sum of batch remaining quantities.
+    """
     # Get current item quantity
     item = await fetch_one(
         "SELECT id, item_name, current_qty FROM item_master WHERE id = $1",
@@ -2232,30 +2238,190 @@ async def create_stock_adjustment(
             conn=conn,
         )
 
-        # Update item current_qty
-        await execute_query_tx(
-            "UPDATE item_master SET current_qty = $1, updated_at = NOW() WHERE id = $2",
-            new_qty,
-            request.item_master_id,
-            conn=conn,
-        )
+        # Handle batch updates based on adjustment type
+        if quantity_change < 0:
+            # DECREASE: Deduct from batches using FIFO to update inventory value
+            qty_to_deduct = abs(quantity_change)
 
-        # Log transaction
-        await execute_query_tx(
-            """
-            INSERT INTO inventory_transactions (
-                item_master_id, transaction_type, quantity_change,
-                new_balance, user_id, notes
+            # Get available batches (FIFO - oldest first)
+            batches = await fetch_all_tx(
+                """
+                SELECT id, batch_number, remaining_qty, unit_cost
+                FROM inventory_batches
+                WHERE item_master_id = $1
+                  AND is_active = TRUE
+                  AND remaining_qty > 0
+                ORDER BY purchase_date ASC, id ASC
+                """,
+                request.item_master_id,
+                conn=conn,
             )
-            VALUES ($1, 'adjustment', $2, $3, $4, $5)
-            """,
-            request.item_master_id,
-            quantity_change,
-            new_qty,
-            user_id,
-            f"{request.adjustment_type}: {request.reason}",
-            conn=conn,
-        )
+
+            if not batches:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="No batches available to deduct from",
+                )
+
+            remaining_to_deduct = qty_to_deduct
+            for batch in batches:
+                if remaining_to_deduct <= 0:
+                    break
+
+                batch_remaining = Decimal(str(batch["remaining_qty"]))
+                batch_unit_cost = Decimal(str(batch["unit_cost"]))
+
+                qty_from_batch = min(remaining_to_deduct, batch_remaining)
+                cost_from_batch = qty_from_batch * batch_unit_cost
+
+                # Update batch remaining quantity
+                new_batch_qty = batch_remaining - qty_from_batch
+                await execute_query_tx(
+                    "UPDATE inventory_batches SET remaining_qty = $1, updated_at = NOW() WHERE id = $2",
+                    new_batch_qty,
+                    batch["id"],
+                    conn=conn,
+                )
+
+                # Log transaction with batch details
+                await execute_query_tx(
+                    """
+                    INSERT INTO inventory_transactions (
+                        item_master_id, batch_id, transaction_type, quantity_change,
+                        new_balance, unit_cost, total_cost, user_id, notes
+                    )
+                    VALUES ($1, $2, 'adjustment', $3, $4, $5, $6, $7, $8)
+                    """,
+                    request.item_master_id,
+                    batch["id"],
+                    -qty_from_batch,
+                    new_batch_qty,
+                    batch_unit_cost,
+                    -cost_from_batch,
+                    user_id,
+                    f"{request.adjustment_type}: {request.reason} (from batch {batch['batch_number']})",
+                    conn=conn,
+                )
+
+                remaining_to_deduct -= qty_from_batch
+
+            # Get final quantity after trigger updates
+            item_updated = await fetch_one_tx(
+                "SELECT current_qty FROM item_master WHERE id = $1",
+                request.item_master_id,
+                conn=conn,
+            )
+            new_qty = item_updated["current_qty"]
+
+        elif quantity_change > 0:
+            # INCREASE: Add to most recent batch or create adjustment batch
+            # Get the most recent active batch
+            recent_batch = await fetch_one_tx(
+                """
+                SELECT id, batch_number, remaining_qty, unit_cost
+                FROM inventory_batches
+                WHERE item_master_id = $1
+                  AND is_active = TRUE
+                ORDER BY purchase_date DESC, id DESC
+                LIMIT 1
+                """,
+                request.item_master_id,
+                conn=conn,
+            )
+
+            if recent_batch:
+                # Add to most recent batch
+                new_batch_qty = Decimal(str(recent_batch["remaining_qty"])) + quantity_change
+                batch_unit_cost = Decimal(str(recent_batch["unit_cost"]))
+                cost_added = quantity_change * batch_unit_cost
+
+                await execute_query_tx(
+                    "UPDATE inventory_batches SET remaining_qty = $1, updated_at = NOW() WHERE id = $2",
+                    new_batch_qty,
+                    recent_batch["id"],
+                    conn=conn,
+                )
+
+                # Log transaction
+                await execute_query_tx(
+                    """
+                    INSERT INTO inventory_transactions (
+                        item_master_id, batch_id, transaction_type, quantity_change,
+                        new_balance, unit_cost, total_cost, user_id, notes
+                    )
+                    VALUES ($1, $2, 'adjustment', $3, $4, $5, $6, $7, $8)
+                    """,
+                    request.item_master_id,
+                    recent_batch["id"],
+                    quantity_change,
+                    new_batch_qty,
+                    batch_unit_cost,
+                    cost_added,
+                    user_id,
+                    f"{request.adjustment_type}: {request.reason} (added to batch {recent_batch['batch_number']})",
+                    conn=conn,
+                )
+            else:
+                # No batches exist - create adjustment batch with zero cost
+                batch_number = f"ADJ-{adjustment_id}"
+                await execute_query_tx(
+                    """
+                    INSERT INTO inventory_batches (
+                        item_master_id, batch_number, quantity_purchased, remaining_qty,
+                        unit_cost, purchase_date, added_by, notes
+                    )
+                    VALUES ($1, $2, $3, $3, 0, NOW(), $4, $5)
+                    """,
+                    request.item_master_id,
+                    batch_number,
+                    quantity_change,
+                    user_id,
+                    f"Adjustment batch: {request.reason}",
+                    conn=conn,
+                )
+
+                # Log transaction
+                await execute_query_tx(
+                    """
+                    INSERT INTO inventory_transactions (
+                        item_master_id, transaction_type, quantity_change,
+                        new_balance, unit_cost, total_cost, user_id, notes
+                    )
+                    VALUES ($1, 'adjustment', $2, $3, 0, 0, $4, $5)
+                    """,
+                    request.item_master_id,
+                    quantity_change,
+                    new_qty,
+                    user_id,
+                    f"{request.adjustment_type}: {request.reason} (new batch {batch_number})",
+                    conn=conn,
+                )
+
+            # Get final quantity after trigger updates
+            item_updated = await fetch_one_tx(
+                "SELECT current_qty FROM item_master WHERE id = $1",
+                request.item_master_id,
+                conn=conn,
+            )
+            new_qty = item_updated["current_qty"]
+
+        else:
+            # No change - just log it
+            await execute_query_tx(
+                """
+                INSERT INTO inventory_transactions (
+                    item_master_id, transaction_type, quantity_change,
+                    new_balance, user_id, notes
+                )
+                VALUES ($1, 'adjustment', $2, $3, $4, $5)
+                """,
+                request.item_master_id,
+                quantity_change,
+                new_qty,
+                user_id,
+                f"{request.adjustment_type}: {request.reason}",
+                conn=conn,
+            )
 
     return {
         "success": True,
