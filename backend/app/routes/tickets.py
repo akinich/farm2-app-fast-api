@@ -2,11 +2,17 @@
 ================================================================================
 Farm Management System - Ticket Routes
 ================================================================================
-Version: 1.1.0
-Last Updated: 2025-11-20
+Version: 1.2.0
+Last Updated: 2025-11-22
 
 Changelog:
 ----------
+v1.2.0 (2025-11-22):
+  - Added webhook event triggers for ticket lifecycle events
+  - Trigger ticket.created event when ticket is created
+  - Trigger ticket.updated event when ticket is updated
+  - Trigger ticket.closed event when ticket is closed
+
 v1.1.0 (2025-11-20):
   - Added DELETE /tickets/{ticket_id} endpoint for ticket deletion
   - Users can delete their own tickets
@@ -57,7 +63,8 @@ from app.schemas.tickets import (
 )
 from app.schemas.auth import CurrentUser
 from app.auth.dependencies import get_current_user, require_admin
-from app.services import tickets_service
+from app.services import tickets_service, webhook_service
+from app.database import get_db_connection
 
 router = APIRouter()
 
@@ -132,13 +139,34 @@ async def get_ticket(
 async def create_ticket(
     request: CreateTicketRequest,
     current_user: CurrentUser = Depends(get_current_user),
+    conn = Depends(get_db_connection),
 ):
     """
     Create a new ticket.
     Any authenticated user can create tickets.
     Priority is not set at creation - only admins can assign priority later.
     """
-    return await tickets_service.create_ticket(request, current_user.id)
+    ticket = await tickets_service.create_ticket(request, current_user.id)
+
+    # Trigger webhook event
+    try:
+        await webhook_service.trigger_event(
+            conn,
+            'ticket.created',
+            {
+                "id": ticket.id,
+                "title": ticket.title,
+                "ticket_type": ticket.ticket_type,
+                "priority": ticket.priority,
+                "status": ticket.status,
+                "created_by": current_user.email,
+            }
+        )
+    except Exception as e:
+        # Don't fail ticket creation if webhook fails
+        pass
+
+    return ticket
 
 
 @router.put("/{ticket_id}", response_model=TicketDetailResponse)
@@ -146,6 +174,7 @@ async def update_ticket(
     ticket_id: int,
     request: UpdateTicketRequest,
     current_user: CurrentUser = Depends(get_current_user),
+    conn = Depends(get_db_connection),
 ):
     """
     Update a ticket.
@@ -153,12 +182,32 @@ async def update_ticket(
     Cannot update closed tickets.
     """
     is_admin = current_user.role.lower() == "admin"
-    return await tickets_service.update_ticket(
+    ticket = await tickets_service.update_ticket(
         ticket_id,
         request,
         current_user.id,
         is_admin=is_admin
     )
+
+    # Trigger webhook event
+    try:
+        await webhook_service.trigger_event(
+            conn,
+            'ticket.updated',
+            {
+                "id": ticket.id,
+                "title": ticket.title,
+                "ticket_type": ticket.ticket_type,
+                "priority": ticket.priority,
+                "status": ticket.status,
+                "updated_by": current_user.email,
+            }
+        )
+    except Exception as e:
+        # Don't fail ticket update if webhook fails
+        pass
+
+    return ticket
 
 
 @router.put("/{ticket_id}/admin", response_model=TicketDetailResponse)
@@ -183,6 +232,7 @@ async def close_ticket(
     ticket_id: int,
     request: Optional[CloseTicketRequest] = None,
     admin: CurrentUser = Depends(require_admin),
+    conn = Depends(get_db_connection),
 ):
     """
     Close a ticket.
@@ -190,11 +240,30 @@ async def close_ticket(
     Optionally include a closing comment.
     """
     comment = request.comment if request else None
-    return await tickets_service.close_ticket(
+    ticket = await tickets_service.close_ticket(
         ticket_id,
         admin.id,
         comment=comment
     )
+
+    # Trigger webhook event
+    try:
+        await webhook_service.trigger_event(
+            conn,
+            'ticket.closed',
+            {
+                "id": ticket.id,
+                "title": ticket.title,
+                "ticket_type": ticket.ticket_type,
+                "priority": ticket.priority,
+                "closed_by": admin.email,
+            }
+        )
+    except Exception as e:
+        # Don't fail ticket close if webhook fails
+        pass
+
+    return ticket
 
 
 @router.delete("/{ticket_id}")
