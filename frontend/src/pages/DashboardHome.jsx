@@ -110,6 +110,22 @@ export default function DashboardHome() {
 
   return (
     <Box>
+      {/* Debug Info (temporary) */}
+      {widgets?._debug && (
+        <Alert severity="info" sx={{ mb: 3 }}>
+          <Typography variant="subtitle2" fontWeight="bold">Debug Info:</Typography>
+          <Typography variant="caption" component="div">
+            User: {widgets._debug.user_email} | Role: {widgets._debug.user_role}
+          </Typography>
+          <Typography variant="caption" component="div">
+            Accessible Modules: {widgets._debug.accessible_module_keys.join(', ') || 'None'}
+          </Typography>
+          <Typography variant="caption" component="div">
+            Total Modules: {widgets._debug.total_modules_count}
+          </Typography>
+        </Alert>
+      )}
+
       {/* Header */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" gutterBottom fontWeight="bold">
