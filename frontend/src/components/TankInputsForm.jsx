@@ -2,8 +2,8 @@
  * ============================================================================
  * Biofloc Operational Forms - Multi-Tank Inputs
  * ============================================================================
- * Version: 1.1.0
- * Last Updated: 2025-11-21
+ * Version: 1.0.0
+ * Last Updated: 2025-11-19
  *
  * Form for recording tank inputs (chemicals, probiotics, carbon sources, etc.)
  * Supports multiple tanks in one session.
@@ -11,7 +11,7 @@
  */
 
 import React, { useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from 'react-query';
 import {
   Box,
   Card,
@@ -32,10 +32,12 @@ import {
   Select,
   MenuItem,
 } from '@mui/material';
-import SaveIcon from '@mui/icons-material/Save';
-import InputIcon from '@mui/icons-material/Science';
-import AddIcon from '@mui/icons-material/Add';
-import DeleteIcon from '@mui/icons-material/Delete';
+import {
+  Save as SaveIcon,
+  Science as InputIcon,
+  Add as AddIcon,
+  Delete as DeleteIcon,
+} from '@mui/icons-material';
 
 import { bioflocAPI } from '../api';
 import { inventoryAPI } from '../api';

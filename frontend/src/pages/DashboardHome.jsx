@@ -1,15 +1,10 @@
 /**
  * Dashboard Home Page
- * Version: 1.2.0
- * Last Updated: 2025-11-21
+ * Version: 1.1.0
+ * Last Updated: 2025-11-17
  *
  * Changelog:
  * ----------
- * v1.2.0 (2025-11-21):
- *   - Converted Material-UI icon imports to individual imports for better tree-shaking
- *   - Migrated from react-query v3 to @tanstack/react-query v5
- *   - Bundle size optimization as part of code splitting initiative
- *
  * v1.1.0 (2025-11-17):
  *   - Added INR currency formatting for inventory value
  *   - Uses formatCurrency utility with Indian Rupee symbol (₹)
@@ -19,7 +14,7 @@
  */
 
 import React from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery } from 'react-query';
 import {
   Box,
   Grid,
@@ -29,10 +24,12 @@ import {
   CircularProgress,
   Alert,
 } from '@mui/material';
-import InventoryIcon from '@mui/icons-material/Inventory';
-import WarningIcon from '@mui/icons-material/Warning';
-import PeopleIcon from '@mui/icons-material/People';
-import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
+import {
+  Inventory as InventoryIcon,
+  Warning as WarningIcon,
+  People as PeopleIcon,
+  ShoppingCart as ShoppingCartIcon,
+} from '@mui/icons-material';
 
 import { dashboardAPI } from '../api';
 import { formatCurrency } from '../utils/formatters';

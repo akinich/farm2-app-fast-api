@@ -1,7 +1,6 @@
 /**
  * Reservations Dashboard - View and manage inventory reservations
- * Version: 1.1.0
- * Last Updated: 2025-11-21
+ * Version: 1.0.0
  * Created: 2025-11-18
  */
 
@@ -33,9 +32,11 @@ import {
   Grid,
   Tooltip,
 } from '@mui/material';
-import CancelIcon from '@mui/icons-material/Cancel';
-import ConfirmIcon from '@mui/icons-material/CheckCircle';
-import RefreshIcon from '@mui/icons-material/Refresh';
+import {
+  Cancel as CancelIcon,
+  CheckCircle as ConfirmIcon,
+  Refresh as RefreshIcon,
+} from '@mui/icons-material';
 import { inventoryAPI } from '../api';
 
 const ReservationsDashboard = () => {

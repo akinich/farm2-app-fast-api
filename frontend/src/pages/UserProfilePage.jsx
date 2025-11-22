@@ -1,6 +1,6 @@
 /**
  * User Profile Page
- * Version: 1.1.0
+ * Version: 1.0.0
  * Last Updated: 2025-11-21
  *
  * Displays user profile information and allows editing full name.
@@ -21,14 +21,16 @@ import {
   Skeleton,
   Chip,
 } from '@mui/material';
-import Person from '@mui/icons-material/Person';
-import Email from '@mui/icons-material/Email';
-import Badge from '@mui/icons-material/Badge';
-import CalendarMonth from '@mui/icons-material/CalendarMonth';
-import Lock from '@mui/icons-material/Lock';
-import Edit from '@mui/icons-material/Edit';
-import Save from '@mui/icons-material/Save';
-import Cancel from '@mui/icons-material/Cancel';
+import {
+  Person,
+  Email,
+  Badge,
+  CalendarMonth,
+  Lock,
+  Edit,
+  Save,
+  Cancel,
+} from '@mui/icons-material';
 import { authAPI } from '../api/auth';
 import useAuthStore from '../store/authStore';
 

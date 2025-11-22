@@ -1,20 +1,10 @@
 /**
  * Dashboard Layout with Sidebar Navigation
- * Version: 1.6.0
+ * Version: 1.4.0
  * Last Updated: 2025-11-21
  *
  * Changelog:
  * ----------
- * v1.6.0 (2025-11-21):
- *   - CRITICAL FIX: Added Suspense boundary around <Outlet /> for lazy-loaded child routes
- *   - Fixes blank page issue where lazy-loaded children couldn't render
- *   - Added CircularProgress loading fallback for route transitions
- *
- * v1.5.0 (2025-11-21):
- *   - Converted Material-UI icon imports to individual imports for better tree-shaking
- *   - Migrated from react-query v3 to @tanstack/react-query v5
- *   - Bundle size optimization as part of code splitting initiative
- *
  * v1.4.0 (2025-11-21):
  *   - Added "My Profile" option in user menu dropdown
  *   - Added Person icon import
@@ -44,7 +34,7 @@
  *   - Expandable/collapsible submenus
  */
 
-import React, { useState, useEffect, useCallback, useRef, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   Box,
@@ -68,22 +58,23 @@ import {
   DialogContent,
   DialogActions,
   Button,
-  CircularProgress,
 } from '@mui/material';
-import MenuIcon from '@mui/icons-material/Menu';
-import DashboardIcon from '@mui/icons-material/Dashboard';
-import AdminIcon from '@mui/icons-material/AdminPanelSettings';
-import InventoryIcon from '@mui/icons-material/Inventory';
-import BioflocIcon from '@mui/icons-material/Science';
-import TicketsIcon from '@mui/icons-material/ConfirmationNumber';
-import DevelopmentIcon from '@mui/icons-material/Code';
-import AccountCircle from '@mui/icons-material/AccountCircle';
-import Logout from '@mui/icons-material/Logout';
-import Lock from '@mui/icons-material/Lock';
-import Person from '@mui/icons-material/Person';
-import ExpandLess from '@mui/icons-material/ExpandLess';
-import ExpandMore from '@mui/icons-material/ExpandMore';
-import WarningIcon from '@mui/icons-material/Warning';
+import {
+  Menu as MenuIcon,
+  Dashboard as DashboardIcon,
+  AdminPanelSettings as AdminIcon,
+  Inventory as InventoryIcon,
+  Science as BioflocIcon,
+  ConfirmationNumber as TicketsIcon,
+  Code as DevelopmentIcon,
+  AccountCircle,
+  Logout,
+  Lock,
+  Person,
+  ExpandLess,
+  ExpandMore,
+  Warning as WarningIcon,
+} from '@mui/icons-material';
 import { useSnackbar } from 'notistack';
 
 import useAuthStore from '../store/authStore';
@@ -505,13 +496,7 @@ export default function DashboardLayout() {
         }}
       >
         <Toolbar />
-        <Suspense fallback={
-          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}>
-            <CircularProgress />
-          </Box>
-        }>
-          <Outlet />
-        </Suspense>
+        <Outlet />
       </Box>
 
       {/* Session Timeout Warning Dialog */}
