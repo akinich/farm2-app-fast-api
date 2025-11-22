@@ -12,6 +12,10 @@ v1.3.0 (2025-11-22):
   - Added email router for email operations (templates, queue, recipients, test)
   - Integrated email queue processing into background scheduler (every 5 minutes)
   - Email service supports HTML templates, retry logic, and recipient management
+  - Added API Key Management system
+  - New routes for API key CRUD operations
+  - Support for programmatic API access with scope-based permissions
+  - API key usage tracking and analytics
 
 v1.2.0 (2025-11-21):
   - Enhanced inventory item master module with new features
@@ -271,13 +275,14 @@ async def ping():
 # ============================================================================
 
 # Import routers
-from app.routes import auth, admin, inventory, dashboard, biofloc, tickets, development, docs, telegram, security, units, webhooks, email
+from app.routes import auth, admin, inventory, dashboard, biofloc, tickets, development, docs, telegram, security, units, webhooks, email, api_keys
 from app.routes import settings as settings_router
 
 # Mount routers
 app.include_router(auth.router, prefix=f"{settings.API_PREFIX}/auth", tags=["Authentication"])
 app.include_router(admin.router, prefix=f"{settings.API_PREFIX}/admin", tags=["Admin Panel"])
 app.include_router(security.router, prefix=f"{settings.API_PREFIX}/security", tags=["Security"])
+app.include_router(api_keys.router, prefix=f"{settings.API_PREFIX}", tags=["API Keys"])
 app.include_router(inventory.router, prefix=f"{settings.API_PREFIX}/inventory", tags=["Inventory"])
 app.include_router(units.router, prefix=f"{settings.API_PREFIX}", tags=["Units"])
 app.include_router(dashboard.router, prefix=f"{settings.API_PREFIX}/dashboard", tags=["Dashboard"])
