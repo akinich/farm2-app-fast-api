@@ -1,8 +1,13 @@
 /**
  * Main App Component
- * Version: 1.3.1
+ * Version: 1.3.2
  *
  * Changelog:
+ * v1.3.2 (2025-11-21):
+ *   - NOTE: Real fix was adding Suspense boundary around <Outlet /> in DashboardLayout
+ *   - DashboardLayout remains eagerly loaded for optimal performance
+ *   - Child routes properly render with Suspense boundary in parent layout
+ *
  * v1.3.1 (2025-11-21):
  *   - BUGFIX: Removed lazy loading from DashboardLayout to fix blank page issue
  *   - DashboardLayout is now eagerly loaded as a layout component

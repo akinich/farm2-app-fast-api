@@ -1,10 +1,15 @@
 /**
  * Dashboard Layout with Sidebar Navigation
- * Version: 1.5.0
+ * Version: 1.6.0
  * Last Updated: 2025-11-21
  *
  * Changelog:
  * ----------
+ * v1.6.0 (2025-11-21):
+ *   - CRITICAL FIX: Added Suspense boundary around <Outlet /> for lazy-loaded child routes
+ *   - Fixes blank page issue where lazy-loaded children couldn't render
+ *   - Added CircularProgress loading fallback for route transitions
+ *
  * v1.5.0 (2025-11-21):
  *   - Converted Material-UI icon imports to individual imports for better tree-shaking
  *   - Migrated from react-query v3 to @tanstack/react-query v5
@@ -39,7 +44,7 @@
  *   - Expandable/collapsible submenus
  */
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   Box,
@@ -63,6 +68,7 @@ import {
   DialogContent,
   DialogActions,
   Button,
+  CircularProgress,
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import DashboardIcon from '@mui/icons-material/Dashboard';
@@ -499,7 +505,13 @@ export default function DashboardLayout() {
         }}
       >
         <Toolbar />
-        <Outlet />
+        <Suspense fallback={
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}>
+            <CircularProgress />
+          </Box>
+        }>
+          <Outlet />
+        </Suspense>
       </Box>
 
       {/* Session Timeout Warning Dialog */}
