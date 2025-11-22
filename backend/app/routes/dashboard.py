@@ -121,8 +121,18 @@ async def get_dashboard_widgets(user: CurrentUser = Depends(get_current_user)) -
 
     # Debug logging
     logger.info(f"User {user.email} (role: {user.role}) - Accessible modules: {module_keys}")
+    logger.info(f"Full modules list: {modules}")
 
     widgets = {}
+
+    # Include debug info in response for troubleshooting
+    widgets["_debug"] = {
+        "user_id": user.id,
+        "user_email": user.email,
+        "user_role": user.role,
+        "accessible_module_keys": list(module_keys),
+        "total_modules_count": len(modules)
+    }
 
     # Inventory widgets
     if "inventory" in module_keys:
