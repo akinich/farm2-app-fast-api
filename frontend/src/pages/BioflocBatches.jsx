@@ -2,11 +2,16 @@
  * ============================================================================
  * Biofloc Batches Management Page
  * ============================================================================
- * Version: 1.1.1
- * Last Updated: 2025-11-19
+ * Version: 1.2.0
+ * Last Updated: 2025-11-21
  *
  * Changelog:
  * ----------
+ * v1.2.0 (2025-11-21):
+ *   - Converted Material-UI icon imports to individual imports for better tree-shaking
+ *   - Migrated from react-query v3 to @tanstack/react-query v5
+ *   - Bundle size optimization as part of code splitting initiative
+ *
  * v1.1.1 (2025-11-19):
  *   - FIX: Disabled "View Details" button to prevent redirect to dashboard
  *   - Commented out CardActions until batch detail page is implemented
@@ -26,7 +31,7 @@
  */
 
 import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from 'react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -51,13 +56,11 @@ import {
   IconButton,
   LinearProgress,
 } from '@mui/material';
-import {
-  Add as AddIcon,
-  Visibility as ViewIcon,
-  CheckCircle as ActiveIcon,
-  Done as CompletedIcon,
-  Cancel as TerminatedIcon,
-} from '@mui/icons-material';
+import AddIcon from '@mui/icons-material/Add';
+import ViewIcon from '@mui/icons-material/Visibility';
+import ActiveIcon from '@mui/icons-material/CheckCircle';
+import CompletedIcon from '@mui/icons-material/Done';
+import TerminatedIcon from '@mui/icons-material/Cancel';
 
 import { bioflocAPI } from '../api';
 

@@ -2,15 +2,15 @@
  * ============================================================================
  * Biofloc Feeding History Page
  * ============================================================================
- * Version: 1.0.0
- * Last Updated: 2025-11-19
+ * Version: 1.1.0
+ * Last Updated: 2025-11-21
  *
  * Displays history of all feeding sessions with filtering options.
  * ============================================================================
  */
 
 import React, { useState } from 'react';
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 import {
   Box,
   Card,

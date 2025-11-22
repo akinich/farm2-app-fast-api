@@ -1,10 +1,15 @@
 /**
  * Inventory Module - Items, Stock, Purchase Orders, Alerts
- * Version: 3.0.0
+ * Version: 3.1.0
  * Last Updated: 2025-11-21
  *
  * Changelog:
  * ----------
+ * v3.1.0 (2025-11-21):
+ *   - Converted Material-UI icon imports to individual imports for better tree-shaking
+ *   - Migrated from react-query v3 to @tanstack/react-query v5
+ *   - Bundle size optimization as part of code splitting initiative
+ *
  * v3.0.0 (2025-11-21):
  *   - MAJOR: Complete Purchase Order management overhaul
  *   - FEATURE: Auto-fill default price from item master when selecting items
@@ -159,22 +164,20 @@ import {
   Checkbox,
   FormControlLabel,
 } from '@mui/material';
-import {
-  Add as AddIcon,
-  Warning as WarningIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Search as SearchIcon,
-  TrendingUp as TrendingUpIcon,
-  TrendingDown as TrendingDownIcon,
-  Restore as RestoreIcon,
-  DeleteForever as DeleteForeverIcon,
-  Visibility as VisibilityIcon,
-  ContentCopy as ContentCopyIcon,
-  Inventory as InventoryIcon,
-  History as HistoryIcon,
-} from '@mui/icons-material';
-import { useQuery, useMutation, useQueryClient } from 'react-query';
+import AddIcon from '@mui/icons-material/Add';
+import WarningIcon from '@mui/icons-material/Warning';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
+import SearchIcon from '@mui/icons-material/Search';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import TrendingDownIcon from '@mui/icons-material/TrendingDown';
+import RestoreIcon from '@mui/icons-material/Restore';
+import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import InventoryIcon from '@mui/icons-material/Inventory';
+import HistoryIcon from '@mui/icons-material/History';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSnackbar } from 'notistack';
 import { inventoryAPI } from '../api';
 import { formatCurrency } from '../utils/formatters';

@@ -2,11 +2,16 @@
  * ============================================================================
  * Biofloc Operational Forms - Multi-Tank Feeding Session
  * ============================================================================
- * Version: 2.1.0
- * Last Updated: 2025-11-19
+ * Version: 2.2.0
+ * Last Updated: 2025-11-21
  *
  * Changelog:
  * ----------
+ * v2.2.0 (2025-11-21):
+ *   - Converted Material-UI icon imports to individual imports for better tree-shaking
+ *   - Migrated from react-query v3 to @tanstack/react-query v5
+ *   - Bundle size optimization as part of code splitting initiative
+ *
  * v2.1.0 (2025-11-19):
  *   - CRITICAL FIX: Changed dropdown to show item_name first instead of SKU
  *   - Fixed onChange to send item_name as fallback if SKU is not set
@@ -20,7 +25,7 @@
  */
 
 import React, { useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from 'react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Box,
   Card,
@@ -37,12 +42,10 @@ import {
   Paper,
   Chip,
 } from '@mui/material';
-import {
-  Add as AddIcon,
-  Delete as DeleteIcon,
-  Save as SaveIcon,
-  Restaurant as FeedIcon,
-} from '@mui/icons-material';
+import AddIcon from '@mui/icons-material/Add';
+import DeleteIcon from '@mui/icons-material/Delete';
+import SaveIcon from '@mui/icons-material/Save';
+import FeedIcon from '@mui/icons-material/Restaurant';
 
 import { bioflocAPI } from '../api';
 import { inventoryAPI } from '../api';

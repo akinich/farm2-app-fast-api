@@ -1,10 +1,15 @@
 /**
  * Telegram Notifications Settings Page
- * Version: 1.2.2
+ * Version: 1.3.0
  * Last Updated: 2025-11-21
  *
  * Changelog:
  * ----------
+ * v1.3.0 (2025-11-21):
+ *   - Converted Material-UI icon imports to individual imports for better tree-shaking
+ *   - Migrated from react-query v3 to @tanstack/react-query v5
+ *   - Bundle size optimization as part of code splitting initiative
+ *
  * v1.2.2 (2025-11-21):
  *   - Fix: Moved settings parsing from onSuccess to useEffect for better reliability
  *   - Added isSuccess check to prevent stuck loading state
@@ -68,17 +73,15 @@ import {
   DialogActions,
   Paper,
 } from '@mui/material';
-import {
-  Telegram as TelegramIcon,
-  CheckCircle as CheckCircleIcon,
-  Error as ErrorIcon,
-  Send as SendIcon,
-  Refresh as RefreshIcon,
-  Link as LinkIcon,
-  LinkOff as LinkOffIcon,
-  ContentCopy as ContentCopyIcon,
-} from '@mui/icons-material';
-import { useQuery, useMutation, useQueryClient } from 'react-query';
+import TelegramIcon from '@mui/icons-material/Telegram';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import ErrorIcon from '@mui/icons-material/Error';
+import SendIcon from '@mui/icons-material/Send';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import LinkIcon from '@mui/icons-material/Link';
+import LinkOffIcon from '@mui/icons-material/LinkOff';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { telegramAPI } from '../api';
 import { useSnackbar } from 'notistack';
 

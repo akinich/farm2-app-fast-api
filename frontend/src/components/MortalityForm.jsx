@@ -2,8 +2,8 @@
  * ============================================================================
  * Biofloc Operational Forms - Mortality (Multi-Batch Support)
  * ============================================================================
- * Version: 2.0.0
- * Last Updated: 2025-11-19
+ * Version: 2.1.0
+ * Last Updated: 2025-11-21
  *
  * Form for recording mortality events with multi-batch tank support.
  *
@@ -16,7 +16,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { useMutation, useQuery, useQueryClient } from 'react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Box,
   Card,
