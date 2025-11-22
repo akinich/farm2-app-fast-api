@@ -1,15 +1,10 @@
 /**
  * Admin Panel - User Management, Modules, Permissions & Activity Logs
- * Version: 1.8.0
- * Last Updated: 2025-11-21
+ * Version: 1.7.0
+ * Last Updated: 2025-11-20
  *
  * Changelog:
  * ----------
- * v1.8.0 (2025-11-21):
- *   - Converted Material-UI icon imports to individual imports for better tree-shaking
- *   - Migrated from react-query v3 to @tanstack/react-query v5
- *   - Bundle size optimization as part of code splitting initiative
- *
  * v1.7.0 (2025-11-20):
  *   - Added Telegram Notifications settings route (/admin/telegram)
  *   - Integrated TelegramSettings component for bot configuration
@@ -101,14 +96,16 @@ import {
   MenuItem,
   FormHelperText,
 } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-import PermissionsIcon from '@mui/icons-material/VpnKey';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import {
+  Add as AddIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  VpnKey as PermissionsIcon,
+  ExpandMore as ExpandMoreIcon,
+  ChevronRight as ChevronRightIcon,
+} from '@mui/icons-material';
 import Switch from '@mui/material/Switch';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { adminAPI } from '../api';
 import { useSnackbar } from 'notistack';
 import TelegramSettings from './TelegramSettings';

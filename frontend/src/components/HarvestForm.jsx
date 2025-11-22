@@ -2,8 +2,8 @@
  * ============================================================================
  * Biofloc Operational Forms - Harvest (Multi-Batch Support)
  * ============================================================================
- * Version: 2.1.0
- * Last Updated: 2025-11-21
+ * Version: 2.0.0
+ * Last Updated: 2025-11-19
  *
  * Form for recording harvest operations with multi-batch tank support.
  *
@@ -16,7 +16,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from 'react-query';
 import {
   Box,
   Card,
@@ -39,9 +39,11 @@ import {
   FormControlLabel,
   FormLabel,
 } from '@mui/material';
-import SaveIcon from '@mui/icons-material/Save';
-import HarvestIcon from '@mui/icons-material/LocalShipping';
-import WarningIcon from '@mui/icons-material/Warning';
+import {
+  Save as SaveIcon,
+  LocalShipping as HarvestIcon,
+  Warning as WarningIcon,
+} from '@mui/icons-material';
 
 import { bioflocAPI } from '../api';
 

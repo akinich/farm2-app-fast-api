@@ -2,16 +2,11 @@
  * ============================================================================
  * Farm Management System - Tickets Module Frontend
  * ============================================================================
- * Version: 1.2.0
- * Last Updated: 2025-11-21
+ * Version: 1.1.0
+ * Last Updated: 2025-11-20
  *
  * Changelog:
  * ----------
- * v1.2.0 (2025-11-21):
- *   - Converted Material-UI icon imports to individual imports for better tree-shaking
- *   - Migrated from react-query v3 to @tanstack/react-query v5
- *   - Bundle size optimization as part of code splitting initiative
- *
  * v1.1.0 (2025-11-20):
  *   - Added ticket deletion functionality
  *   - Users can delete their own tickets
@@ -79,17 +74,19 @@ import {
   ListItemAvatar,
   Avatar,
 } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import ViewIcon from '@mui/icons-material/Visibility';
-import EditIcon from '@mui/icons-material/Edit';
-import CloseIcon from '@mui/icons-material/Close';
-import SendIcon from '@mui/icons-material/Send';
-import DeleteIcon from '@mui/icons-material/Delete';
-import BugIcon from '@mui/icons-material/BugReport';
-import FeatureIcon from '@mui/icons-material/Lightbulb';
-import UpgradeIcon from '@mui/icons-material/TrendingUp';
-import OthersIcon from '@mui/icons-material/MoreHoriz';
-import CommentIcon from '@mui/icons-material/Comment';
+import {
+  Add as AddIcon,
+  Visibility as ViewIcon,
+  Edit as EditIcon,
+  Close as CloseIcon,
+  Send as SendIcon,
+  Delete as DeleteIcon,
+  BugReport as BugIcon,
+  Lightbulb as FeatureIcon,
+  TrendingUp as UpgradeIcon,
+  MoreHoriz as OthersIcon,
+  Comment as CommentIcon,
+} from '@mui/icons-material';
 import { useSnackbar } from 'notistack';
 import useAuthStore from '../store/authStore';
 import { ticketsAPI } from '../api';

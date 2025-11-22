@@ -1,15 +1,9 @@
 /**
  * Development Planning Module
  * Feature planning and progress tracking
- * Version: 1.2.0
- * Last Updated: 2025-11-21
+ * Version: 1.1.0
  *
  * Changelog:
- * v1.2.0 (2025-11-21):
- *   - Converted Material-UI icon imports to individual imports for better tree-shaking
- *   - Migrated from react-query v3 to @tanstack/react-query v5
- *   - Bundle size optimization as part of code splitting initiative
- *
  * v1.1.0 (2025-11-20):
  *   - Added delete functionality for features
  *   - Delete button in feature detail view (admin only)
@@ -65,16 +59,18 @@ import {
   Checkbox,
   LinearProgress,
 } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import ViewIcon from '@mui/icons-material/Visibility';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-import SendIcon from '@mui/icons-material/Send';
-import DoneIcon from '@mui/icons-material/CheckCircle';
-import TodoIcon from '@mui/icons-material/RadioButtonUnchecked';
-import InProgressIcon from '@mui/icons-material/PlayCircle';
-import CommentIcon from '@mui/icons-material/Comment';
-import PriorityIcon from '@mui/icons-material/Flag';
+import {
+  Add as AddIcon,
+  Visibility as ViewIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  Send as SendIcon,
+  CheckCircle as DoneIcon,
+  RadioButtonUnchecked as TodoIcon,
+  PlayCircle as InProgressIcon,
+  Comment as CommentIcon,
+  Flag as PriorityIcon,
+} from '@mui/icons-material';
 import { useSnackbar } from 'notistack';
 import useAuthStore from '../store/authStore';
 import { developmentAPI } from '../api';

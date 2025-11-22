@@ -2,15 +2,15 @@
  * ============================================================================
  * Biofloc Operational Forms - Sampling
  * ============================================================================
- * Version: 1.1.0
- * Last Updated: 2025-11-21
+ * Version: 1.0.0
+ * Last Updated: 2025-11-18
  *
  * Form for recording fish sampling and growth measurements.
  * ============================================================================
  */
 
 import React, { useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from 'react-query';
 import {
   Box,
   Card,

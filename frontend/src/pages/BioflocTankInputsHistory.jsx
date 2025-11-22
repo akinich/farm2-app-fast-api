@@ -2,15 +2,15 @@
  * ============================================================================
  * Biofloc Tank Inputs History Page
  * ============================================================================
- * Version: 1.1.0
- * Last Updated: 2025-11-21
+ * Version: 1.0.0
+ * Last Updated: 2025-11-19
  *
  * Displays history of all tank inputs (chemicals, probiotics, etc.) with filtering.
  * ============================================================================
  */
 
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery } from 'react-query';
 import {
   Box,
   Card,

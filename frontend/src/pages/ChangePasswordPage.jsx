@@ -1,6 +1,6 @@
 /**
  * Change Password Page
- * Version: 1.1.0
+ * Version: 1.0.0
  * Last Updated: 2025-11-21
  *
  * Allows logged-in users to change their password.
@@ -24,11 +24,13 @@ import {
   ListItemIcon,
   ListItemText,
 } from '@mui/material';
-import Visibility from '@mui/icons-material/Visibility';
-import VisibilityOff from '@mui/icons-material/VisibilityOff';
-import CheckCircle from '@mui/icons-material/CheckCircle';
-import Cancel from '@mui/icons-material/Cancel';
-import Lock from '@mui/icons-material/Lock';
+import {
+  Visibility,
+  VisibilityOff,
+  CheckCircle,
+  Cancel,
+  Lock,
+} from '@mui/icons-material';
 import { authAPI } from '../api/auth';
 import useAuthStore from '../store/authStore';
 
