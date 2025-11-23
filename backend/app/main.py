@@ -8,6 +8,11 @@ Last Updated: 2025-11-22
 Changelog:
 ----------
 v1.3.0 (2025-11-22):
+  - Added WebSocket real-time notification system
+  - WebSocket endpoint for bidirectional communication
+  - Real-time ticket notifications (create, update, close)
+  - Connection manager for tracking active WebSocket connections
+  - Event emitters for broadcasting updates to clients
   - Added SMTP Email Service with queue and template management
   - Added email router for email operations (templates, queue, recipients, test)
   - Integrated email queue processing into background scheduler (every 5 minutes)
@@ -275,7 +280,7 @@ async def ping():
 # ============================================================================
 
 # Import routers
-from app.routes import auth, admin, inventory, dashboard, biofloc, tickets, development, docs, telegram, security, units, webhooks, email, api_keys
+from app.routes import auth, admin, inventory, dashboard, biofloc, tickets, development, docs, telegram, security, units, webhooks, email, api_keys, websocket
 from app.routes import settings as settings_router
 
 # Mount routers
@@ -294,6 +299,7 @@ app.include_router(webhooks.router, prefix=f"{settings.API_PREFIX}", tags=["Webh
 app.include_router(email.router, prefix=f"{settings.API_PREFIX}", tags=["Email"])
 app.include_router(docs.router, prefix=f"{settings.API_PREFIX}", tags=["Documentation"])
 app.include_router(settings_router.router, prefix=f"{settings.API_PREFIX}/settings", tags=["Settings"])
+app.include_router(websocket.router, tags=["WebSocket"])
 
 
 # ============================================================================

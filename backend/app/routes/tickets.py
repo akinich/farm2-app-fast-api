@@ -8,10 +8,12 @@ Last Updated: 2025-11-22
 Changelog:
 ----------
 v1.2.0 (2025-11-22):
+  - Integrated WebSocket real-time notifications for ticket events
+  - Emit ticket.created event when new tickets are created
+  - Emit ticket.updated event when tickets are updated or closed
+  - Real-time broadcasting to all connected clients
   - Added webhook event triggers for ticket lifecycle events
-  - Trigger ticket.created event when ticket is created
-  - Trigger ticket.updated event when ticket is updated
-  - Trigger ticket.closed event when ticket is closed
+  - Trigger ticket.created, ticket.updated, ticket.closed webhook events
 
 v1.1.0 (2025-11-20):
   - Added DELETE /tickets/{ticket_id} endpoint for ticket deletion
@@ -65,6 +67,7 @@ from app.schemas.auth import CurrentUser
 from app.auth.dependencies import get_current_user, require_admin
 from app.services import tickets_service, webhook_service
 from app.database import get_db
+from app.websocket import events as ws_events
 
 router = APIRouter()
 
@@ -147,6 +150,15 @@ async def create_ticket(
     """
     ticket = await tickets_service.create_ticket(request, current_user.id)
 
+    # Emit WebSocket event
+    await ws_events.emit_ticket_created({
+        "id": ticket.get('id'),
+        "title": ticket.get('title'),
+        "priority": ticket.get('priority'),
+        "status": ticket.get('status'),
+        "type": ticket.get('type')
+    })
+
     # Trigger webhook event
     try:
         pool = get_db()
@@ -189,6 +201,15 @@ async def update_ticket(
         is_admin=is_admin
     )
 
+    # Emit WebSocket event
+    await ws_events.emit_ticket_updated({
+        "id": ticket.get('id'),
+        "title": ticket.get('title'),
+        "priority": ticket.get('priority'),
+        "status": ticket.get('status'),
+        "type": ticket.get('type')
+    })
+
     # Trigger webhook event
     try:
         pool = get_db()
@@ -222,11 +243,42 @@ async def admin_update_ticket(
     Admin update for ticket.
     Admins can update any field including status and priority.
     """
-    return await tickets_service.admin_update_ticket(
+    ticket = await tickets_service.admin_update_ticket(
         ticket_id,
         request,
         admin.id
     )
+
+    # Emit WebSocket event
+    await ws_events.emit_ticket_updated({
+        "id": ticket.get('id'),
+        "title": ticket.get('title'),
+        "priority": ticket.get('priority'),
+        "status": ticket.get('status'),
+        "type": ticket.get('type')
+    })
+
+    # Trigger webhook event
+    try:
+        pool = get_db()
+        async with pool.acquire() as conn:
+            await webhook_service.trigger_event(
+                conn,
+                'ticket.updated',
+                {
+                    "id": ticket.id,
+                    "title": ticket.title,
+                    "ticket_type": ticket.ticket_type,
+                    "priority": ticket.priority,
+                    "status": ticket.status,
+                    "updated_by": admin.email,
+                }
+            )
+    except Exception as e:
+        # Don't fail ticket update if webhook fails
+        pass
+
+    return ticket
 
 
 @router.post("/{ticket_id}/close", response_model=TicketDetailResponse)
@@ -246,6 +298,15 @@ async def close_ticket(
         admin.id,
         comment=comment
     )
+
+    # Emit WebSocket event
+    await ws_events.emit_ticket_updated({
+        "id": ticket.get('id'),
+        "title": ticket.get('title'),
+        "priority": ticket.get('priority'),
+        "status": ticket.get('status'),
+        "type": ticket.get('type')
+    })
 
     # Trigger webhook event
     try:
