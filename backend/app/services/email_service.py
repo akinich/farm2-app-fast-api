@@ -281,13 +281,37 @@ async def _send_smtp_email(
     if cc_emails:
         message['Cc'] = ', '.join(cc_emails)
 
+    # Determine SSL/TLS settings based on port
+    port = smtp_settings['port']
+
+    # Port 465 = SSL/TLS (implicit encryption)
+    # Port 587 = STARTTLS (explicit TLS upgrade)
+    if port == 465:
+        # SSL/TLS on port 465
+        use_tls = True
+        start_tls = False
+        logger.debug(f"Using SSL/TLS for port 465")
+    elif port == 587:
+        # STARTTLS on port 587
+        use_tls = False
+        start_tls = True
+        logger.debug(f"Using STARTTLS for port 587")
+    else:
+        # Use user's TLS setting for other ports
+        use_tls = smtp_settings.get('use_tls', False)
+        start_tls = not use_tls
+        logger.debug(f"Port {port}: use_tls={use_tls}, start_tls={start_tls}")
+
     # Send via SMTP
+    logger.debug(f"Connecting to {smtp_settings['host']}:{port} (use_tls={use_tls}, start_tls={start_tls})")
+
     await aiosmtplib.send(
         message,
         hostname=smtp_settings['host'],
-        port=smtp_settings['port'],
+        port=port,
         username=smtp_settings['username'],
         password=smtp_settings['password'],
-        use_tls=smtp_settings['use_tls'],
+        use_tls=use_tls,
+        start_tls=start_tls,
         timeout=30
     )
