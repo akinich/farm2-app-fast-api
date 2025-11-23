@@ -1,10 +1,15 @@
 /**
  * Dashboard Layout with Sidebar Navigation
- * Version: 1.9.0
+ * Version: 1.10.0
  * Last Updated: 2025-11-23
  *
  * Changelog:
  * ----------
+ * v1.10.0 (2025-11-23):
+ *   - Removed hardcoded API Keys menu item (now under Communication module)
+ *   - API Keys accessible via Communication > API Keys in hierarchical navigation
+ *   - Cleaned up navigation structure for better module organization
+ *
  * v1.9.0 (2025-11-23):
  *   - Added API Keys menu item to sidebar navigation
  *   - Added VpnKey icon for API keys section
@@ -464,21 +469,6 @@ export default function DashboardLayout() {
             </React.Fragment>
           );
         })}
-
-        <Divider sx={{ my: 1 }} />
-
-        {/* API Keys */}
-        <ListItem disablePadding>
-          <ListItemButton
-            selected={location.pathname === '/api-keys'}
-            onClick={() => navigate('/api-keys')}
-          >
-            <ListItemIcon>
-              <VpnKeyIcon />
-            </ListItemIcon>
-            <ListItemText primary="API Keys" />
-          </ListItemButton>
-        </ListItem>
       </List>
     </Box>
   );
