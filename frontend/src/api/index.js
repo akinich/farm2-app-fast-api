@@ -32,6 +32,7 @@ import apiClient from './client';
 import { authAPI } from './auth';
 import { bioflocAPI } from './biofloc';
 import { docsAPI } from './docs';
+import { settingsAPI } from './settings';
 
 // ============================================================================
 // DASHBOARD API
@@ -662,7 +663,7 @@ export const telegramAPI = {
 };
 
 // Export all APIs (only re-export imported APIs, others already exported above)
-export { authAPI, bioflocAPI, docsAPI, apiClient };
+export { authAPI, bioflocAPI, docsAPI, settingsAPI, apiClient };
 export default {
   auth: authAPI,
   dashboard: dashboardAPI,
@@ -674,4 +675,5 @@ export default {
   development: developmentAPI,
   docs: docsAPI,
   telegram: telegramAPI,
+  settings: settingsAPI,
 };
