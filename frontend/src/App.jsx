@@ -4,6 +4,7 @@
  *
  * Changelog:
  * v1.3.0 (2025-11-22):
+ *   - Added WebhooksPage route at /webhooks
  *   - Added EmailManagementPage route at /communication/smtp
  *
  * v1.2.0 (2025-11-21):
@@ -27,6 +28,7 @@ import DashboardLayout from './components/DashboardLayout';
 import DashboardHome from './pages/DashboardHome';
 import AdminPanel from './pages/AdminPanel';
 import SettingsPage from './pages/SettingsPage';
+import WebhooksPage from './pages/WebhooksPage';
 import EmailManagementPage from './pages/EmailManagementPage';
 import InventoryModule from './pages/InventoryModule';
 import BioflocModule from './pages/BioflocModule';
@@ -83,6 +85,7 @@ function App() {
         <Route path="profile" element={<UserProfilePage />} />
         <Route path="admin/*" element={<AdminPanel />} />
         <Route path="settings" element={<SettingsPage />} />
+        <Route path="webhooks" element={<WebhooksPage />} />
         <Route path="communication/smtp" element={<EmailManagementPage />} />
         <Route path="inventory/*" element={<InventoryModule />} />
         <Route path="biofloc/*" element={<BioflocModule />} />

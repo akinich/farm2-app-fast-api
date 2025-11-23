@@ -14,7 +14,19 @@ Tasks:
 1. Auto-expire old inventory reservations (every 15 minutes)
 2. Low stock first alerts (every hour)
 3. Low stock daily summary (daily at 9 AM)
-4. Process email queue (every 5 minutes)
+4. Process webhook delivery queue (every 2 minutes)
+5. Process email queue (every 5 minutes)
+
+Changelog:
+----------
+v2.1.0 (2025-11-22):
+  - Added webhook delivery queue processing task
+  - Runs every 2 minutes to send pending webhooks
+  - Added email queue processing task
+  - Runs every 5 minutes to send pending emails
+
+v2.0.0 (2025-11-20):
+  - Initial version with inventory and notification tasks
 
 ================================================================================
 """
@@ -25,8 +37,8 @@ from apscheduler.triggers.interval import IntervalTrigger
 from apscheduler.triggers.cron import CronTrigger
 from datetime import datetime
 
-from app.database import fetch_one, fetch_all, execute_query, get_db
-from app.services import telegram_service, email_service
+from app.database import fetch_one, fetch_all, execute_query, get_db_connection, get_db
+from app.services import telegram_service, webhook_service, email_service
 
 logger = logging.getLogger(__name__)
 
@@ -135,6 +147,23 @@ async def send_low_stock_daily_summary():
         logger.error(f"❌ Error sending daily low stock summary: {e}", exc_info=True)
 
 
+async def process_webhook_queue():
+    """
+    Process pending webhook deliveries.
+    Runs every 2 minutes.
+    """
+    try:
+        logger.debug("Processing webhook delivery queue...")
+
+        conn = await get_db_connection()
+        await webhook_service.process_webhook_queue(conn, batch_size=20)
+
+        logger.debug("Webhook queue processing completed")
+
+    except Exception as e:
+        logger.error(f"❌ Error processing webhook queue: {e}", exc_info=True)
+
+
 async def process_email_queue():
     """
     Process pending emails in the queue.
@@ -192,7 +221,17 @@ def start_scheduler():
             max_instances=1,
         )
 
-        # Task 4: Process email queue every 5 minutes
+        # Task 4: Process webhook delivery queue every 2 minutes
+        scheduler.add_job(
+            process_webhook_queue,
+            trigger=IntervalTrigger(minutes=2),
+            id="process_webhook_queue",
+            name="Process webhook delivery queue",
+            replace_existing=True,
+            max_instances=1,
+        )
+
+        # Task 5: Process email queue every 5 minutes
         scheduler.add_job(
             process_email_queue,
             trigger=IntervalTrigger(minutes=5),
@@ -208,6 +247,7 @@ def start_scheduler():
         logger.info("   - Expire reservations: Every 15 minutes")
         logger.info("   - Low stock first alerts: Every hour")
         logger.info("   - Low stock daily summary: Daily at 9:00 AM")
+        logger.info("   - Process webhook queue: Every 2 minutes")
         logger.info("   - Process email queue: Every 5 minutes")
 
     except Exception as e:
