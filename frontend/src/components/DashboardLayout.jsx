@@ -1,10 +1,14 @@
 /**
  * Dashboard Layout with Sidebar Navigation
- * Version: 1.8.0
+ * Version: 1.9.0
  * Last Updated: 2025-11-23
  *
  * Changelog:
  * ----------
+ * v1.9.0 (2025-11-23):
+ *   - Added API Keys menu item to sidebar navigation
+ *   - Added VpnKey icon for API keys section
+ *
  * v1.8.0 (2025-11-23):
  *   - Fixed parent module navigation behavior
  *   - Parent modules with sub-modules now only expand/collapse (no navigation)
@@ -89,6 +93,7 @@ import {
   ConfirmationNumber as TicketsIcon,
   Code as DevelopmentIcon,
   Campaign as CommunicationIcon,
+  VpnKey as VpnKeyIcon,
   AccountCircle,
   Logout,
   Lock,
@@ -459,6 +464,21 @@ export default function DashboardLayout() {
             </React.Fragment>
           );
         })}
+
+        <Divider sx={{ my: 1 }} />
+
+        {/* API Keys */}
+        <ListItem disablePadding>
+          <ListItemButton
+            selected={location.pathname === '/api-keys'}
+            onClick={() => navigate('/api-keys')}
+          >
+            <ListItemIcon>
+              <VpnKeyIcon />
+            </ListItemIcon>
+            <ListItemText primary="API Keys" />
+          </ListItemButton>
+        </ListItem>
       </List>
     </Box>
   );
