@@ -2,11 +2,21 @@
 ================================================================================
 Farm Management System - FastAPI Main Application
 ================================================================================
-Version: 1.2.0
-Last Updated: 2025-11-21
+Version: 1.13.0
+Last Updated: 2025-11-23
 
 Changelog:
 ----------
+v1.13.0 (2025-11-23):
+  - Added Settings & Configuration Management System
+  - Database-driven settings with automatic .env fallback
+  - Settings API routes for CRUD operations
+  - Settings helper utility with caching and fallback logic
+  - Migrated Telegram and Supabase settings from environment to database
+  - Complete audit trail for all setting changes
+  - Support for encrypted sensitive settings
+  - Settings page with admin-only access
+
 v1.2.0 (2025-11-21):
   - Enhanced inventory item master module with new features
   - Added default_price field support across item master operations
