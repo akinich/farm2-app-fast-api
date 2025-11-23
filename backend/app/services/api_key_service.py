@@ -144,8 +144,12 @@ async def create_api_key(
 
     logger.info(f"Created API key '{name}' for user {user_id} with {len(scopes)} scopes")
 
+    # Convert UUID to string for Pydantic validation
+    result = dict(created)
+    result['user_id'] = str(result['user_id'])
+
     return {
-        **dict(created),
+        **result,
         'api_key': api_key  # Return full key (only time it's shown)
     }
 
@@ -327,7 +331,8 @@ async def get_user_api_keys(conn: Connection, user_id: str) -> List[Dict[str, An
         """,
         user_id
     )
-    return [dict(k) for k in keys]
+    # Convert UUID to string for Pydantic validation
+    return [{**dict(k), 'user_id': str(k['user_id'])} for k in keys]
 
 async def get_api_key_usage(
     conn: Connection,
