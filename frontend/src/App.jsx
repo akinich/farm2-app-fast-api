@@ -6,7 +6,7 @@
  * v1.3.0 (2025-11-22):
  *   - Integrated WebSocket service for real-time notifications
  *   - Auto-connect/disconnect WebSocket based on authentication state
- *   - Added WebhooksPage route at /webhooks
+ *   - Added WebhooksPage route at /communication/webhooks
  *   - Added EmailManagementPage route at /communication/smtp
  *   - Added API Keys management page route at /api-keys
  *
@@ -113,7 +113,7 @@ function App() {
         <Route path="profile" element={<UserProfilePage />} />
         <Route path="admin/*" element={<AdminPanel />} />
         <Route path="settings" element={<SettingsPage />} />
-        <Route path="webhooks" element={<WebhooksPage />} />
+        <Route path="communication/webhooks" element={<WebhooksPage />} />
         <Route path="communication/smtp" element={<EmailManagementPage />} />
         <Route path="communication/api-keys" element={<APIKeysPage />} />
         <Route path="inventory/*" element={<InventoryModule />} />
