@@ -4,7 +4,7 @@
  *
  * Changelog:
  * v1.3.0 (2025-11-22):
- *   - Added WebhooksPage route at /webhooks
+ *   - Added WebhooksPage route at /communication/webhooks
  *   - Added EmailManagementPage route at /communication/smtp
  *
  * v1.2.0 (2025-11-21):
@@ -85,7 +85,7 @@ function App() {
         <Route path="profile" element={<UserProfilePage />} />
         <Route path="admin/*" element={<AdminPanel />} />
         <Route path="settings" element={<SettingsPage />} />
-        <Route path="webhooks" element={<WebhooksPage />} />
+        <Route path="communication/webhooks" element={<WebhooksPage />} />
         <Route path="communication/smtp" element={<EmailManagementPage />} />
         <Route path="inventory/*" element={<InventoryModule />} />
         <Route path="biofloc/*" element={<BioflocModule />} />
