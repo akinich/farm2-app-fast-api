@@ -1,10 +1,21 @@
 /**
  * Dashboard Layout with Sidebar Navigation
- * Version: 1.6.0
- * Last Updated: 2025-11-22
+ * Version: 1.8.0
+ * Last Updated: 2025-11-23
  *
  * Changelog:
  * ----------
+ * v1.8.0 (2025-11-23):
+ *   - Fixed parent module navigation behavior
+ *   - Parent modules with sub-modules now only expand/collapse (no navigation)
+ *   - Prevents page refresh when clicking on Communication or other parent modules
+ *   - Added Communication module icon and route mappings
+ *
+ * v1.7.0 (2025-11-22):
+ *   - Added Settings menu item to sidebar navigation (Admin only)
+ *   - Settings accessible between Dashboard and dynamic modules
+ *   - Admin role check with proper navigation and selection highlighting
+ *
  * v1.6.0 (2025-11-22):
  *   - Auto-expand parent module in sidebar based on current URL path
  *   - Fixes issue where refreshing a sub-module page (e.g., /admin/users) collapsed the sidebar
@@ -77,6 +88,7 @@ import {
   Science as BioflocIcon,
   ConfirmationNumber as TicketsIcon,
   Code as DevelopmentIcon,
+  Campaign as CommunicationIcon,
   AccountCircle,
   Logout,
   Lock,
@@ -84,6 +96,7 @@ import {
   ExpandLess,
   ExpandMore,
   Warning as WarningIcon,
+  Settings as SettingsIcon,
 } from '@mui/icons-material';
 import { useSnackbar } from 'notistack';
 
@@ -273,17 +286,15 @@ export default function DashboardLayout() {
   const handleModuleClick = (moduleKey, hasSubModules) => {
     if (moduleKey === 'dashboard') {
       navigate('/dashboard');
+    } else if (hasSubModules) {
+      // If module has sub-modules, only toggle expand/collapse (don't navigate)
+      setExpandedModules((prev) => ({
+        ...prev,
+        [moduleKey]: !prev[moduleKey],
+      }));
     } else {
-      // Navigate to module's default route
+      // If no sub-modules, navigate to the module's route
       navigate(`/${moduleKey}`);
-
-      // Also toggle expand for modules with sub-menus
-      if (hasSubModules) {
-        setExpandedModules((prev) => ({
-          ...prev,
-          [moduleKey]: !prev[moduleKey],
-        }));
-      }
     }
   };
 
@@ -295,6 +306,7 @@ export default function DashboardLayout() {
       biofloc: <BioflocIcon />,
       tickets: <TicketsIcon />,
       development: <DevelopmentIcon />,
+      communication: <CommunicationIcon />,
     };
     return icons[moduleKey] || <DashboardIcon />;
   };
@@ -343,12 +355,23 @@ export default function DashboardLayout() {
       biofloc_tank_inputs_history: '/biofloc/tank-inputs-history',
     };
 
+    // Communication sub-modules
+    const communicationRoutes = {
+      com_telegram: '/communication/telegram',
+      com_smtp: '/communication/smtp',
+      com_webhooks: '/communication/webhooks',
+      com_api_keys: '/communication/api-keys',
+      com_websockets: '/communication/websockets',
+    };
+
     if (parentModuleKey === 'admin') {
       return adminRoutes[subModuleKey] || `/admin/${subModuleKey.replace('admin_', '')}`;
     } else if (parentModuleKey === 'inventory') {
       return inventoryRoutes[subModuleKey] || `/inventory/${subModuleKey.replace('inventory_', '')}`;
     } else if (parentModuleKey === 'biofloc') {
       return bioflocRoutes[subModuleKey] || `/biofloc/${subModuleKey.replace('biofloc_', '')}`;
+    } else if (parentModuleKey === 'communication') {
+      return communicationRoutes[subModuleKey] || `/communication/${subModuleKey.replace('com_', '')}`;
     }
 
     // Default: construct route from keys
@@ -377,6 +400,21 @@ export default function DashboardLayout() {
             <ListItemText primary="Dashboard" />
           </ListItemButton>
         </ListItem>
+
+        {/* Settings (Admin Only) */}
+        {user?.role?.toLowerCase() === 'admin' && (
+          <ListItem disablePadding>
+            <ListItemButton
+              selected={location.pathname === '/settings'}
+              onClick={() => navigate('/settings')}
+            >
+              <ListItemIcon>
+                <SettingsIcon />
+              </ListItemIcon>
+              <ListItemText primary="Settings" />
+            </ListItemButton>
+          </ListItem>
+        )}
 
         {/* Dynamic Modules (only top-level, exclude dashboard) */}
         {topLevelModules.map((module) => {
