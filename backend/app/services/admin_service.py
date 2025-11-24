@@ -18,7 +18,7 @@ v1.6.0 (2025-11-19):
   - CRITICAL FIX: User creation now uses Supabase Admin API
   - Ensures emails are marked as confirmed for password reset functionality
   - Fixes issue where new users couldn't receive password reset emails
-  - Previous version directly inserted into auth.users without email confirmation
+  - Previous version directly inserted into users without email confirmation
 
 v1.5.0 (2025-11-17):
   - Added cascading disable for parent modules
@@ -145,7 +145,7 @@ async def get_users_list(
             up.is_active,
             up.created_at
         FROM user_profiles up
-        JOIN auth.users au ON au.id = up.id
+        JOIN users au ON au.id = up.id
         LEFT JOIN roles r ON r.id = up.role_id
         {where_clause}
         ORDER BY up.created_at DESC
@@ -199,7 +199,7 @@ async def create_user(request: CreateUserRequest, created_by_id: str) -> Dict:
         existing_user = await fetch_one(
             """
             SELECT au.id, up.is_active
-            FROM auth.users au
+            FROM users au
             LEFT JOIN user_profiles up ON up.id = au.id
             WHERE au.email = $1
             """,
@@ -269,7 +269,7 @@ async def create_user(request: CreateUserRequest, created_by_id: str) -> Dict:
                 up.is_active,
                 up.created_at
             FROM user_profiles up
-            JOIN auth.users au ON au.id = up.id
+            JOIN users au ON au.id = up.id
             LEFT JOIN roles r ON r.id = up.role_id
             WHERE up.id = $1
             """,
@@ -282,7 +282,7 @@ async def create_user(request: CreateUserRequest, created_by_id: str) -> Dict:
 
         # Log activity
         admin = await fetch_one(
-            "SELECT au.email, r.role_name FROM user_profiles up JOIN auth.users au ON au.id = up.id LEFT JOIN roles r ON r.id = up.role_id WHERE up.id = $1",
+            "SELECT au.email, r.role_name FROM user_profiles up JOIN users au ON au.id = up.id LEFT JOIN roles r ON r.id = up.role_id WHERE up.id = $1",
             created_by_id,
         )
         await log_activity(
@@ -385,7 +385,7 @@ async def update_user(
             up.is_active,
             up.created_at
         FROM user_profiles up
-        JOIN auth.users au ON au.id = up.id
+        JOIN users au ON au.id = up.id
         LEFT JOIN roles r ON r.id = up.role_id
         WHERE up.id = $1
         """,
@@ -398,7 +398,7 @@ async def update_user(
 
     # Log activity
     admin = await fetch_one(
-        "SELECT au.email, r.role_name FROM user_profiles up JOIN auth.users au ON au.id = up.id LEFT JOIN roles r ON r.id = up.role_id WHERE up.id = $1",
+        "SELECT au.email, r.role_name FROM user_profiles up JOIN users au ON au.id = up.id LEFT JOIN roles r ON r.id = up.role_id WHERE up.id = $1",
         updated_by_id,
     )
     await log_activity(
@@ -428,7 +428,7 @@ async def delete_user(user_id: str, deleted_by_id: str, hard_delete: bool = Fals
     """
     # Check if user exists
     user = await fetch_one(
-        "SELECT up.id, au.email FROM user_profiles up JOIN auth.users au ON au.id = up.id WHERE up.id = $1",
+        "SELECT up.id, au.email FROM user_profiles up JOIN users au ON au.id = up.id WHERE up.id = $1",
         user_id,
     )
     if not user:
@@ -468,7 +468,7 @@ async def delete_user(user_id: str, deleted_by_id: str, hard_delete: bool = Fals
 
     # Log activity
     admin = await fetch_one(
-        "SELECT au.email, r.role_name FROM user_profiles up JOIN auth.users au ON au.id = up.id LEFT JOIN roles r ON r.id = up.role_id WHERE up.id = $1",
+        "SELECT au.email, r.role_name FROM user_profiles up JOIN users au ON au.id = up.id LEFT JOIN roles r ON r.id = up.role_id WHERE up.id = $1",
         deleted_by_id,
     )
     await log_activity(
@@ -760,11 +760,11 @@ async def update_user_permissions(
 
     # Log activity
     admin = await fetch_one(
-        "SELECT au.email, r.role_name FROM user_profiles up JOIN auth.users au ON au.id = up.id LEFT JOIN roles r ON r.id = up.role_id WHERE up.id = $1",
+        "SELECT au.email, r.role_name FROM user_profiles up JOIN users au ON au.id = up.id LEFT JOIN roles r ON r.id = up.role_id WHERE up.id = $1",
         granted_by_id,
     )
     user_email = await fetch_one(
-        "SELECT email FROM auth.users WHERE id = $1", user_id
+        "SELECT email FROM users WHERE id = $1", user_id
     )
     await log_activity(
         user_id=granted_by_id,
