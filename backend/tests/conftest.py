@@ -76,8 +76,8 @@ async def cleanup_database():
 
     # Clean up test data (delete in reverse order of dependencies)
     cleanup_queries = [
-        "DELETE FROM login_attempts WHERE email LIKE '%@test.com'",
-        "DELETE FROM active_sessions WHERE user_id IN (SELECT id FROM users WHERE email LIKE '%@test.com')",
+        "DELETE FROM login_history WHERE user_id IN (SELECT id FROM users WHERE email LIKE '%@test.com')",
+        "DELETE FROM user_sessions WHERE user_id IN (SELECT id FROM users WHERE email LIKE '%@test.com')",
         "DELETE FROM activity_logs WHERE user_email LIKE '%@test.com'",
         "DELETE FROM webhook_deliveries",
         "DELETE FROM webhooks WHERE user_id IN (SELECT id FROM users WHERE email LIKE '%@test.com')",

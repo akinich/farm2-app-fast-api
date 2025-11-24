@@ -57,42 +57,74 @@ CREATE INDEX idx_user_profiles_is_active ON user_profiles(is_active);
 
 COMMENT ON TABLE user_profiles IS 'Extended user profile information with authentication data';
 
--- Login attempts table (for security tracking)
-CREATE TABLE IF NOT EXISTS login_attempts (
+-- Login history table (tracks all login attempts)
+CREATE TABLE IF NOT EXISTS login_history (
     id SERIAL PRIMARY KEY,
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    email VARCHAR(255) NOT NULL,
     ip_address INET,
-    user_agent TEXT,
-    status VARCHAR(20) NOT NULL, -- 'success', 'failed', 'locked'
+    device_info TEXT,
+    location VARCHAR(255),
+    login_status VARCHAR(20) NOT NULL, -- 'success', 'failed', 'locked'
     failure_reason TEXT,
-    attempted_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    is_new_device BOOLEAN DEFAULT false,
+    is_new_location BOOLEAN DEFAULT false,
+    login_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX idx_login_attempts_user_id ON login_attempts(user_id);
-CREATE INDEX idx_login_attempts_email ON login_attempts(email);
-CREATE INDEX idx_login_attempts_attempted_at ON login_attempts(attempted_at DESC);
+CREATE INDEX idx_login_history_user_id ON login_history(user_id);
+CREATE INDEX idx_login_history_login_status ON login_history(login_status);
+CREATE INDEX idx_login_history_login_at ON login_history(login_at DESC);
 
-COMMENT ON TABLE login_attempts IS 'Track login attempts for security monitoring';
+COMMENT ON TABLE login_history IS 'Track login attempts and history for security monitoring';
 
--- Active sessions table
-CREATE TABLE IF NOT EXISTS active_sessions (
+-- User sessions table (tracks active user sessions)
+CREATE TABLE IF NOT EXISTS user_sessions (
     id SERIAL PRIMARY KEY,
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    refresh_token VARCHAR(500) UNIQUE NOT NULL,
+    refresh_token_hash VARCHAR(255) UNIQUE NOT NULL,
+    device_info TEXT,
     ip_address INET,
-    user_agent TEXT,
+    location VARCHAR(255),
     expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
-    is_valid BOOLEAN DEFAULT true,
+    is_active BOOLEAN DEFAULT true,
+    revoked_at TIMESTAMP WITH TIME ZONE,
+    revoked_by UUID REFERENCES users(id),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    last_used_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    last_activity TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX idx_active_sessions_user_id ON active_sessions(user_id);
-CREATE INDEX idx_active_sessions_refresh_token ON active_sessions(refresh_token);
-CREATE INDEX idx_active_sessions_expires_at ON active_sessions(expires_at);
+CREATE INDEX idx_user_sessions_user_id ON user_sessions(user_id);
+CREATE INDEX idx_user_sessions_refresh_token_hash ON user_sessions(refresh_token_hash);
+CREATE INDEX idx_user_sessions_expires_at ON user_sessions(expires_at);
+CREATE INDEX idx_user_sessions_is_active ON user_sessions(is_active);
 
-COMMENT ON TABLE active_sessions IS 'Track active user sessions and refresh tokens';
+COMMENT ON TABLE user_sessions IS 'Track active user sessions and refresh tokens';
+
+-- Modules table (for module-based permissions and activity tracking)
+CREATE TABLE IF NOT EXISTS modules (
+    id SERIAL PRIMARY KEY,
+    module_key VARCHAR(100) UNIQUE NOT NULL,
+    module_name VARCHAR(255) NOT NULL,
+    description TEXT,
+    icon VARCHAR(50),
+    display_order INTEGER DEFAULT 0,
+    is_active BOOLEAN DEFAULT true,
+    parent_module_id INTEGER REFERENCES modules(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX idx_modules_module_key ON modules(module_key);
+CREATE INDEX idx_modules_is_active ON modules(is_active);
+CREATE INDEX idx_modules_parent_module_id ON modules(parent_module_id);
+
+COMMENT ON TABLE modules IS 'System modules for feature organization and access control';
+
+-- Insert base modules for testing
+INSERT INTO modules (module_key, module_name, description, icon, display_order, is_active) VALUES
+    ('admin', 'Administration', 'System administration and user management', '⚙️', 1, true),
+    ('auth', 'Authentication', 'User authentication and security', '🔐', 2, true)
+ON CONFLICT (module_key) DO NOTHING;
 
 -- Activity logs table
 CREATE TABLE IF NOT EXISTS activity_logs (
@@ -102,14 +134,17 @@ CREATE TABLE IF NOT EXISTS activity_logs (
     user_role VARCHAR(50),
     action_type VARCHAR(100) NOT NULL,
     description TEXT NOT NULL,
+    module_key VARCHAR(100),
     ip_address INET,
     user_agent TEXT,
     metadata JSONB,
+    success BOOLEAN DEFAULT true,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 CREATE INDEX idx_activity_logs_user_id ON activity_logs(user_id);
 CREATE INDEX idx_activity_logs_action_type ON activity_logs(action_type);
+CREATE INDEX idx_activity_logs_module_key ON activity_logs(module_key);
 CREATE INDEX idx_activity_logs_created_at ON activity_logs(created_at DESC);
 
 COMMENT ON TABLE activity_logs IS 'Audit trail of user activities';
@@ -213,7 +248,7 @@ SELECT
 FROM information_schema.tables t
 WHERE table_schema = 'public'
   AND table_name IN (
-    'users', 'user_profiles', 'login_attempts', 'active_sessions',
+    'users', 'user_profiles', 'roles', 'modules', 'login_history', 'user_sessions',
     'activity_logs', 'webhooks', 'webhook_deliveries', 'email_queue', 'api_keys'
   )
 ORDER BY table_name;

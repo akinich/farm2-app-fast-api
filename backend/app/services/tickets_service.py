@@ -17,11 +17,11 @@ v1.1.0 (2025-11-20):
 
 v1.0.1 (2025-11-20):
   - CRITICAL FIX: Resolved SQL query error causing 500 errors on ticket fetch
-  - Added JOIN with auth.users table to properly retrieve user email addresses
-  - Fixed get_tickets_list() - added LEFT JOIN for auth.users on created_by and closed_by
-  - Fixed get_ticket_by_id() - added LEFT JOIN for auth.users on created_by and closed_by
-  - Fixed add_comment() - added LEFT JOIN for auth.users to get commenter email
-  - Fixed update_comment() - added LEFT JOIN for auth.users to get commenter email
+  - Added JOIN with users table to properly retrieve user email addresses
+  - Fixed get_tickets_list() - added LEFT JOIN for users on created_by and closed_by
+  - Fixed get_ticket_by_id() - added LEFT JOIN for users on created_by and closed_by
+  - Fixed add_comment() - added LEFT JOIN for users to get commenter email
+  - Fixed update_comment() - added LEFT JOIN for users to get commenter email
   - Changed all email field selections from up.email to au.email
   - Resolves: "column up_created.email does not exist" database error
 
@@ -140,9 +140,9 @@ async def get_tickets_list(
             ) as comment_count
         FROM tickets t
         LEFT JOIN user_profiles up_created ON t.created_by_id = up_created.id
-        LEFT JOIN auth.users au_created ON au_created.id = up_created.id
+        LEFT JOIN users au_created ON au_created.id = up_created.id
         LEFT JOIN user_profiles up_closed ON t.closed_by_id = up_closed.id
-        LEFT JOIN auth.users au_closed ON au_closed.id = up_closed.id
+        LEFT JOIN users au_closed ON au_closed.id = up_closed.id
         {where_clause}
         ORDER BY t.created_at DESC
         LIMIT ${param_count} OFFSET ${param_count + 1}
@@ -181,9 +181,9 @@ async def get_ticket_by_id(ticket_id: int) -> Dict:
             t.updated_at
         FROM tickets t
         LEFT JOIN user_profiles up_created ON t.created_by_id = up_created.id
-        LEFT JOIN auth.users au_created ON au_created.id = up_created.id
+        LEFT JOIN users au_created ON au_created.id = up_created.id
         LEFT JOIN user_profiles up_closed ON t.closed_by_id = up_closed.id
-        LEFT JOIN auth.users au_closed ON au_closed.id = up_closed.id
+        LEFT JOIN users au_closed ON au_closed.id = up_closed.id
         WHERE t.id = $1
     """
 
@@ -208,7 +208,7 @@ async def get_ticket_by_id(ticket_id: int) -> Dict:
             tc.updated_at
         FROM ticket_comments tc
         LEFT JOIN user_profiles up ON tc.user_id = up.id
-        LEFT JOIN auth.users au ON au.id = up.id
+        LEFT JOIN users au ON au.id = up.id
         WHERE tc.ticket_id = $1
         ORDER BY tc.created_at ASC
     """
@@ -616,7 +616,7 @@ async def add_comment(
             tc.updated_at
         FROM ticket_comments tc
         LEFT JOIN user_profiles up ON tc.user_id = up.id
-        LEFT JOIN auth.users au ON au.id = up.id
+        LEFT JOIN users au ON au.id = up.id
         WHERE tc.id = $1
         """,
         comment_id
@@ -699,7 +699,7 @@ async def update_comment(
             tc.updated_at
         FROM ticket_comments tc
         LEFT JOIN user_profiles up ON tc.user_id = up.id
-        LEFT JOIN auth.users au ON au.id = up.id
+        LEFT JOIN users au ON au.id = up.id
         WHERE tc.id = $1
         """,
         comment_id
