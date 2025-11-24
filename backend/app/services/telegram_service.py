@@ -229,7 +229,7 @@ async def update_settings_bulk(updates: Dict, updated_by: str) -> Dict:
 
 async def check_bot_health() -> Dict:
     """Check if bot is operational using direct HTTP call"""
-    api_url = get_api_url("getMe")
+    api_url = await get_api_url("getMe")
 
     if api_url is None:
         await update_bot_status("error", "Bot token not configured")
@@ -307,7 +307,7 @@ async def update_bot_status(status: str, error_message: Optional[str]) -> None:
 
 async def send_message(chat_id: int, message: str, parse_mode: str = "Markdown") -> bool:
     """Send message to a Telegram chat using direct HTTP call"""
-    api_url = get_api_url("sendMessage")
+    api_url = await get_api_url("sendMessage")
 
     if api_url is None:
         logger.error("Cannot send message: Bot token not configured")

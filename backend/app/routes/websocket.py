@@ -29,14 +29,68 @@ Server Message Types:
 
 ================================================================================
 """
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query, Depends
 from app.websocket.connection_manager import manager
 from app.auth.jwt import verify_access_token
+from app.auth.dependencies import require_admin
+from app.schemas.auth import CurrentUser
+from datetime import datetime
 import logging
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+@router.get("/status")
+async def get_websocket_status(
+    current_user: CurrentUser = Depends(require_admin)
+):
+    """Get WebSocket connection status"""
+    online_users = manager.get_online_users()
+    return {
+        "total_connections": manager.get_connection_count(),
+        "online_users_count": len(online_users),
+        "online_users": online_users,
+        "rooms": {room: list(users) for room, users in manager.rooms.items()},
+        "timestamp": datetime.utcnow().isoformat()
+    }
+
+
+@router.post("/test")
+async def test_websocket(
+    current_user: CurrentUser = Depends(require_admin)
+):
+    """Send a test notification via WebSocket to the current user"""
+    user_id = str(current_user.id)
+
+    # Check if user is connected
+    if user_id not in manager.active_connections:
+        return {
+            "success": False,
+            "message": "You are not connected via WebSocket. Please ensure the WebSocket connection is established.",
+            "connected": False
+        }
+
+    # Send test notification
+    test_message = {
+        "type": "notification",
+        "data": {
+            "title": "WebSocket Test",
+            "message": "WebSocket connection is working correctly!",
+            "type": "success",
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    }
+
+    await manager.send_to_user(user_id, test_message)
+
+    return {
+        "success": True,
+        "message": "Test notification sent successfully",
+        "connected": True,
+        "connections_count": len(manager.active_connections.get(user_id, []))
+    }
 
 
 @router.websocket("/ws")
