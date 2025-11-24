@@ -115,10 +115,11 @@ jobs:
       - name: 🗄️ Run database migrations
         working-directory: backend
         env:
-          DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/farm_test
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/farm_test
         run: |
-          echo "Running database migrations..."
-          python run_all_migrations.py || echo "⚠️ Migrations failed or not found - continuing anyway"
+          echo "Running base schema migration..."
+          psql $DATABASE_URL -f migrations/000_base_schema.sql || exit 1
+          echo "✅ Base schema created successfully"
 
       # 6. Verify test infrastructure
       - name: 🔍 Verify test setup
