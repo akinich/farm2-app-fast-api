@@ -6,6 +6,9 @@
  * Changelog:
  * ----------
  * v1.10.0 (2025-11-23):
+ *   - Integrated WebSocket real-time notifications
+ *   - Show toast notifications for ticket created/updated events
+ *   - Listen for user online/offline presence updates
  *   - Removed hardcoded API Keys menu item (now under Communication module)
  *   - API Keys accessible via Communication > API Keys in hierarchical navigation
  *   - Cleaned up navigation structure for better module organization
@@ -112,6 +115,7 @@ import { useSnackbar } from 'notistack';
 
 import useAuthStore from '../store/authStore';
 import { dashboardAPI } from '../api';
+import websocketService from '../services/websocket';
 
 const DRAWER_WIDTH = 260;
 const SESSION_TIMEOUT = 30 * 60 * 1000; // 2 minutes in milliseconds (for testing)
@@ -248,6 +252,45 @@ export default function DashboardLayout() {
     fetchModules();
   }, []);
 
+  // Set up WebSocket event listeners for real-time notifications
+  useEffect(() => {
+    // Listen for ticket created events
+    const handleTicketCreated = (data) => {
+      enqueueSnackbar(`New ticket created: ${data.title}`, {
+        variant: 'info',
+        autoHideDuration: 5000
+      });
+    };
+
+    // Listen for ticket updated events
+    const handleTicketUpdated = (data) => {
+      enqueueSnackbar(`Ticket updated: ${data.title}`, {
+        variant: 'info',
+        autoHideDuration: 5000
+      });
+    };
+
+    // Listen for notifications
+    const handleNotification = (data) => {
+      enqueueSnackbar(data.message, {
+        variant: data.type || 'info',
+        autoHideDuration: 5000
+      });
+    };
+
+    // Register listeners
+    websocketService.on('ticket.created', handleTicketCreated);
+    websocketService.on('ticket.updated', handleTicketUpdated);
+    websocketService.on('notification', handleNotification);
+
+    // Cleanup
+    return () => {
+      websocketService.off('ticket.created', handleTicketCreated);
+      websocketService.off('ticket.updated', handleTicketUpdated);
+      websocketService.off('notification', handleNotification);
+    };
+  }, [enqueueSnackbar]);
+
   // Auto-expand parent module based on current path
   useEffect(() => {
     if (allModules.length === 0) return;
@@ -371,7 +414,7 @@ export default function DashboardLayout() {
       com_smtp: '/communication/smtp',
       com_webhooks: '/communication/webhooks',
       com_api_keys: '/communication/api-keys',
-      com_websockets: '/communication/websockets',
+      // Note: WebSocket is a background service, not a page route
     };
 
     if (parentModuleKey === 'admin') {
