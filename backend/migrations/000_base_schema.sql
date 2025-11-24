@@ -244,7 +244,7 @@ COMMENT ON TABLE email_queue IS 'Queue for outgoing emails';
 -- VERIFICATION QUERIES
 -- ============================================================================
 
--- Verify tables exist
+-- Verify tables exist (api_keys excluded - created in migration 011)
 SELECT
     table_name,
     (SELECT COUNT(*) FROM information_schema.columns WHERE table_name = t.table_name) as column_count
@@ -252,6 +252,6 @@ FROM information_schema.tables t
 WHERE table_schema = 'public'
   AND table_name IN (
     'users', 'user_profiles', 'roles', 'modules', 'login_history', 'user_sessions',
-    'activity_logs', 'webhooks', 'webhook_deliveries', 'email_queue', 'api_keys'
+    'activity_logs', 'webhooks', 'webhook_deliveries', 'email_queue', 'user_module_permissions'
   )
 ORDER BY table_name;
