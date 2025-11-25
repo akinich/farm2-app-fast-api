@@ -5,10 +5,13 @@
 -- Date: 2025-11-22
 -- ============================================================================
 
--- API Keys table
-CREATE TABLE IF NOT EXISTS api_keys (
+-- Drop existing api_keys table if it exists (from old schema)
+DROP TABLE IF EXISTS api_keys CASCADE;
+
+-- API Keys table (using users table for test compatibility)
+CREATE TABLE api_keys (
     id SERIAL PRIMARY KEY,
-    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     key_hash VARCHAR(255) UNIQUE NOT NULL,
     key_prefix VARCHAR(20) NOT NULL,
     name VARCHAR(255) NOT NULL,

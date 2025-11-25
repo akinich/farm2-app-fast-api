@@ -121,6 +121,14 @@ jobs:
           psql $DATABASE_URL -f migrations/000_base_schema.sql || exit 1
           echo "✅ Base schema created successfully"
 
+          echo "Running tickets module migration..."
+          psql $DATABASE_URL -f migrations/tickets_module_v1.0.0.sql || exit 1
+          echo "✅ Tickets module schema created successfully"
+
+          echo "Running API keys migration..."
+          psql $DATABASE_URL -f migrations/011_api_keys.sql || exit 1
+          echo "✅ API keys schema created successfully"
+
       # 6. Verify test infrastructure
       - name: 🔍 Verify test setup
         working-directory: backend

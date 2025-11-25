@@ -126,6 +126,26 @@ INSERT INTO modules (module_key, module_name, description, icon, display_order, 
     ('auth', 'Authentication', 'User authentication and security', '🔐', 2, true)
 ON CONFLICT (module_key) DO NOTHING;
 
+-- User module permissions table (for fine-grained access control)
+CREATE TABLE IF NOT EXISTS user_module_permissions (
+    id SERIAL PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    module_id INTEGER NOT NULL REFERENCES modules(id) ON DELETE CASCADE,
+    can_access BOOLEAN DEFAULT true,
+    can_create BOOLEAN DEFAULT false,
+    can_update BOOLEAN DEFAULT false,
+    can_delete BOOLEAN DEFAULT false,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(user_id, module_id)
+);
+
+CREATE INDEX idx_user_module_permissions_user_id ON user_module_permissions(user_id);
+CREATE INDEX idx_user_module_permissions_module_id ON user_module_permissions(module_id);
+CREATE INDEX idx_user_module_permissions_can_access ON user_module_permissions(can_access);
+
+COMMENT ON TABLE user_module_permissions IS 'Fine-grained user permissions for each module';
+
 -- Activity logs table
 CREATE TABLE IF NOT EXISTS activity_logs (
     id SERIAL PRIMARY KEY,
@@ -216,32 +236,15 @@ CREATE INDEX idx_email_queue_created_at ON email_queue(created_at);
 
 COMMENT ON TABLE email_queue IS 'Queue for outgoing emails';
 
--- API Keys table (updated to reference users table instead of auth.users)
-CREATE TABLE IF NOT EXISTS api_keys (
-    id SERIAL PRIMARY KEY,
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    api_key VARCHAR(255) UNIQUE NOT NULL,
-    key_name VARCHAR(255) NOT NULL,
-    description TEXT,
-    scopes TEXT[] NOT NULL DEFAULT '{}',
-    is_active BOOLEAN DEFAULT true,
-    expires_at TIMESTAMP WITH TIME ZONE,
-    last_used_at TIMESTAMP WITH TIME ZONE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    revoked_at TIMESTAMP WITH TIME ZONE
-);
-
-CREATE INDEX idx_api_keys_user_id ON api_keys(user_id);
-CREATE INDEX idx_api_keys_api_key ON api_keys(api_key);
-CREATE INDEX idx_api_keys_is_active ON api_keys(is_active);
-
-COMMENT ON TABLE api_keys IS 'API keys for programmatic access';
+-- API Keys table - REMOVED FROM BASE SCHEMA
+-- This table is now created by migration 011_api_keys.sql
+-- which has the proper schema with key_hash and key_prefix columns
 
 -- ============================================================================
 -- VERIFICATION QUERIES
 -- ============================================================================
 
--- Verify tables exist
+-- Verify tables exist (api_keys excluded - created in migration 011)
 SELECT
     table_name,
     (SELECT COUNT(*) FROM information_schema.columns WHERE table_name = t.table_name) as column_count
@@ -249,6 +252,6 @@ FROM information_schema.tables t
 WHERE table_schema = 'public'
   AND table_name IN (
     'users', 'user_profiles', 'roles', 'modules', 'login_history', 'user_sessions',
-    'activity_logs', 'webhooks', 'webhook_deliveries', 'email_queue', 'api_keys'
+    'activity_logs', 'webhooks', 'webhook_deliveries', 'email_queue', 'user_module_permissions'
   )
 ORDER BY table_name;
