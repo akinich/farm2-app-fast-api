@@ -122,6 +122,11 @@ async def cleanup_database():
         "DELETE FROM email_queue",
         "UPDATE email_templates SET created_by = NULL, updated_by = NULL WHERE created_by IN (SELECT id FROM users WHERE email LIKE '%@test.com') OR updated_by IN (SELECT id FROM users WHERE email LIKE '%@test.com')",
         "UPDATE email_recipients SET created_by = NULL, updated_by = NULL WHERE created_by IN (SELECT id FROM users WHERE email LIKE '%@test.com') OR updated_by IN (SELECT id FROM users WHERE email LIKE '%@test.com')",
+        # Telegram cleanup (must clear FK references before deleting users)
+        "DELETE FROM telegram_link_codes WHERE user_id IN (SELECT id FROM users WHERE email LIKE '%@test.com')",
+        "DELETE FROM low_stock_notifications",
+        "UPDATE notification_settings SET updated_by = NULL WHERE updated_by IN (SELECT id FROM users WHERE email LIKE '%@test.com')",
+        "UPDATE user_profiles SET telegram_chat_id = NULL WHERE id IN (SELECT id FROM users WHERE email LIKE '%@test.com')",
         # Webhook cleanup
         "DELETE FROM webhook_deliveries",
         "DELETE FROM webhooks WHERE created_by IN (SELECT id FROM users WHERE email LIKE '%@test.com')",
