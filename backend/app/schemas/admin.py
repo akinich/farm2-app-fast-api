@@ -42,6 +42,7 @@ class UserListItem(BaseModel):
     role_id: int
     role_name: str
     is_active: bool
+    must_change_password: bool
     created_at: datetime
 
     class Config:

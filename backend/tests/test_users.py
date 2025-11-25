@@ -164,7 +164,7 @@ class TestUserManagement:
 
         assert response.status_code == 200
         data = response.json()
-        assert data["full_name"] == "Updated Name"
+        assert data["user"]["full_name"] == "Updated Name"
 
     async def test_soft_delete_user(self, client: AsyncClient, admin_headers):
         """Test soft deleting a user (deactivation)."""

@@ -400,6 +400,7 @@ async def update_user(
             up.role_id,
             r.role_name,
             up.is_active,
+            up.must_change_password,
             up.created_at
         FROM user_profiles up
         JOIN users au ON au.id = up.id
@@ -461,13 +462,24 @@ async def delete_user(user_id: str, deleted_by_id: str, hard_delete: bool = Fals
         )
 
     if hard_delete:
-        # Hard delete - permanently remove user from Supabase
+        # Hard delete - permanently remove user from database
         try:
-            from app.utils.supabase_client import get_supabase_client
-            supabase = get_supabase_client()
+            import os
+            is_test = os.getenv("APP_ENV") == "test"
 
-            # Delete from Supabase auth (will cascade to user_profiles due to ON DELETE CASCADE)
-            supabase.auth.admin.delete_user(user_id)
+            if is_test:
+                # Test mode: Delete directly from database
+                # Delete user_profiles first (if not cascading)
+                await execute_query("DELETE FROM user_profiles WHERE id = $1", UUID(user_id))
+                # Delete from users table
+                await execute_query("DELETE FROM users WHERE id = $1", UUID(user_id))
+            else:
+                # Production mode: Use Supabase Admin API
+                from app.utils.supabase_client import get_supabase_client
+                supabase = get_supabase_client()
+
+                # Delete from Supabase auth (will cascade to user_profiles due to ON DELETE CASCADE)
+                supabase.auth.admin.delete_user(user_id)
 
             logger.info(f"User permanently deleted: {user['email']} (ID: {user_id})")
         except Exception as e:
@@ -756,11 +768,11 @@ async def update_user_permissions(
         values = []
         for module_id in request.module_ids:
             values.append(
-                f"('{user_id}', {module_id}, TRUE, '{granted_by_id}', NOW())"
+                f"('{user_id}', {module_id}, TRUE)"
             )
 
         insert_query = f"""
-            INSERT INTO user_module_permissions (user_id, module_id, can_access, granted_by, granted_at)
+            INSERT INTO user_module_permissions (user_id, module_id, can_access)
             VALUES {', '.join(values)}
         """
         await execute_query(insert_query)

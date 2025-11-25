@@ -205,10 +205,12 @@ class CommentsListResponse(BaseModel):
 
 class TicketStatsResponse(BaseModel):
     """Statistics for tickets"""
+    total: int
     total_tickets: int
     open_tickets: int
     in_progress_tickets: int
     resolved_tickets: int
     closed_tickets: int
+    by_status: dict
     by_type: dict
     by_priority: dict
