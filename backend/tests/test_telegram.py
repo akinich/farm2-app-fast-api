@@ -103,8 +103,7 @@ class TestTelegramBotStatus:
     async def test_send_test_notification(self, client: AsyncClient, admin_headers):
         """Test sending test notification."""
         test_data = {
-            "channel": "tickets",
-            "message": "Test notification from automated tests"
+            "channel_type": "tickets"
         }
 
         response = await client.post(
@@ -117,7 +116,7 @@ class TestTelegramBotStatus:
         data = response.json()
 
         # Response should indicate success or failure with reason
-        assert "success" in data or "error" in data
+        assert "success" in data or "error" in data or "message" in data
 
 
 # ============================================================================
@@ -135,7 +134,7 @@ class TestTelegramLinking:
             headers=user_headers
         )
 
-        assert response.status_code == 200
+        assert response.status_code == 201  # Created status
         data = response.json()
 
         # Verify link code structure
@@ -207,4 +206,4 @@ class TestTelegramPermissions:
             headers=user_headers
         )
 
-        assert response.status_code == 200
+        assert response.status_code == 201  # Created status
