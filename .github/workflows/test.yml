@@ -133,6 +133,12 @@ jobs:
           psql $DATABASE_URL -f migrations/009_smtp_email.sql || exit 1
           echo "✅ Email schema created successfully"
 
+          echo "Running Telegram migration..."
+          psql $DATABASE_URL -f migrations/telegram_notifications_v1.0.0.sql || exit 1
+          psql $DATABASE_URL -f migrations/telegram_notifications_v1.0.1_patch.sql || exit 1
+          psql $DATABASE_URL -f migrations/telegram_notifications_v1.1.0_granular_settings.sql || exit 1
+          echo "✅ Telegram schema created successfully"
+
           echo "Running webhooks migration..."
           psql $DATABASE_URL -f migrations/010_webhooks.sql || exit 1
           echo "✅ Webhooks schema created successfully"
