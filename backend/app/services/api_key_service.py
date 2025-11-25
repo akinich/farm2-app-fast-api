@@ -81,8 +81,8 @@ def generate_api_key() -> tuple[str, str, str]:
     # Hash for storage (bcrypt with auto-generated salt)
     key_hash = bcrypt.hashpw(key.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
-    # Prefix for display (first 12 chars + ellipsis)
-    key_prefix = key[:12] + "..."
+    # Prefix for display (first 12 chars, no ellipsis - that's added in UI)
+    key_prefix = key[:12]
 
     return key, key_hash, key_prefix
 

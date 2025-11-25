@@ -800,11 +800,18 @@ async def get_ticket_stats() -> Dict:
     by_priority = {row["priority"]: row["count"] for row in priority_results}
 
     return {
+        "total": status_stats["total_tickets"],
         "total_tickets": status_stats["total_tickets"],
         "open_tickets": status_stats["open_tickets"],
         "in_progress_tickets": status_stats["in_progress_tickets"],
         "resolved_tickets": status_stats["resolved_tickets"],
         "closed_tickets": status_stats["closed_tickets"],
+        "by_status": {
+            "open": status_stats["open_tickets"],
+            "in_progress": status_stats["in_progress_tickets"],
+            "resolved": status_stats["resolved_tickets"],
+            "closed": status_stats["closed_tickets"],
+        },
         "by_type": by_type,
         "by_priority": by_priority,
     }

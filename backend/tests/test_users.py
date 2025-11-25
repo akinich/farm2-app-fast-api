@@ -88,7 +88,7 @@ class TestUserManagement:
         data = response.json()
         # All returned users should be Admins
         for user in data["users"]:
-            assert user["role"] == "Admin"
+            assert user["role_name"] == "Admin"
 
     async def test_create_user(self, client: AsyncClient, admin_headers):
         """Test creating a new user."""

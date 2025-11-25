@@ -142,7 +142,7 @@ class TestTicketCRUD:
         assert data["title"] == "Test Issue"
         assert data["ticket_type"] == "issue"
         assert data["status"] == "open"
-        assert data["created_by"]["id"] == test_regular_user["id"]
+        assert data["created_by_id"] == test_regular_user["id"]
 
     async def test_create_ticket_without_auth(self, client: AsyncClient):
         """Test creating ticket without authentication."""
@@ -419,7 +419,7 @@ class TestAdminTicketOperations:
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "closed"
-        assert data["closed_by"] is not None
+        assert data["closed_by_id"] is not None
 
     async def test_regular_user_cannot_close_ticket(
         self, client: AsyncClient, user_headers

@@ -651,11 +651,12 @@ async def get_module_users_count(module_id: int) -> Dict:
         """
         SELECT
             up.id,
-            up.email,
+            u.email,
             up.full_name,
             r.role_name
         FROM user_module_permissions ump
         JOIN user_profiles up ON up.id = ump.user_id
+        JOIN users u ON u.id = up.id
         LEFT JOIN roles r ON r.id = up.role_id
         WHERE ump.module_id = $1 AND ump.can_access = TRUE
         ORDER BY up.full_name
