@@ -125,6 +125,10 @@ jobs:
           psql $DATABASE_URL -f migrations/tickets_module_v1.0.0.sql || exit 1
           echo "✅ Tickets module schema created successfully"
 
+          echo "Running settings migration..."
+          psql $DATABASE_URL -f migrations/008_system_settings.sql || exit 1
+          echo "✅ Settings schema created successfully"
+
           echo "Running webhooks migration..."
           psql $DATABASE_URL -f migrations/010_webhooks.sql || exit 1
           echo "✅ Webhooks schema created successfully"
