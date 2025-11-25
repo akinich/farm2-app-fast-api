@@ -2,7 +2,7 @@
 Email API Routes
 """
 from fastapi import APIRouter, Depends, HTTPException, status
-from typing import List
+from typing import List, Dict
 import logging
 
 from app.database import get_db
