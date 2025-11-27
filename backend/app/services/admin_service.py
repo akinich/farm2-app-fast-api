@@ -147,7 +147,7 @@ async def get_users_list(
             up.must_change_password,
             up.created_at
         FROM user_profiles up
-        JOIN users au ON au.id = up.id
+        JOIN auth.users au ON au.id = up.id
         LEFT JOIN roles r ON r.id = up.role_id
         {where_clause}
         ORDER BY up.created_at DESC
@@ -201,7 +201,7 @@ async def create_user(request: CreateUserRequest, created_by_id: str) -> Dict:
         existing_user = await fetch_one(
             """
             SELECT au.id, up.is_active
-            FROM users au
+            FROM auth.users au
             LEFT JOIN user_profiles up ON up.id = au.id
             WHERE au.email = $1
             """,
@@ -241,7 +241,7 @@ async def create_user(request: CreateUserRequest, created_by_id: str) -> Dict:
 
             # Create user in users table
             await execute_query(
-                "INSERT INTO users (id, email) VALUES ($1, $2)",
+                "INSERT INTO auth.users (id, email) VALUES ($1, $2)",
                 UUID(user_id),
                 request.email
             )
@@ -287,7 +287,7 @@ async def create_user(request: CreateUserRequest, created_by_id: str) -> Dict:
                 up.must_change_password,
                 up.created_at
             FROM user_profiles up
-            JOIN users au ON au.id = up.id
+            JOIN auth.users au ON au.id = up.id
             LEFT JOIN roles r ON r.id = up.role_id
             WHERE up.id = $1
             """,
@@ -300,7 +300,7 @@ async def create_user(request: CreateUserRequest, created_by_id: str) -> Dict:
 
         # Log activity
         admin = await fetch_one(
-            "SELECT au.email, r.role_name FROM user_profiles up JOIN users au ON au.id = up.id LEFT JOIN roles r ON r.id = up.role_id WHERE up.id = $1",
+            "SELECT au.email, r.role_name FROM user_profiles up JOIN auth.users au ON au.id = up.id LEFT JOIN roles r ON r.id = up.role_id WHERE up.id = $1",
             created_by_id,
         )
         await log_activity(
@@ -404,7 +404,7 @@ async def update_user(
             up.must_change_password,
             up.created_at
         FROM user_profiles up
-        JOIN users au ON au.id = up.id
+        JOIN auth.users au ON au.id = up.id
         LEFT JOIN roles r ON r.id = up.role_id
         WHERE up.id = $1
         """,
@@ -417,7 +417,7 @@ async def update_user(
 
     # Log activity
     admin = await fetch_one(
-        "SELECT au.email, r.role_name FROM user_profiles up JOIN users au ON au.id = up.id LEFT JOIN roles r ON r.id = up.role_id WHERE up.id = $1",
+        "SELECT au.email, r.role_name FROM user_profiles up JOIN auth.users au ON au.id = up.id LEFT JOIN roles r ON r.id = up.role_id WHERE up.id = $1",
         updated_by_id,
     )
     await log_activity(
@@ -447,7 +447,7 @@ async def delete_user(user_id: str, deleted_by_id: str, hard_delete: bool = Fals
     """
     # Check if user exists
     user = await fetch_one(
-        "SELECT up.id, au.email FROM user_profiles up JOIN users au ON au.id = up.id WHERE up.id = $1",
+        "SELECT up.id, au.email FROM user_profiles up JOIN auth.users au ON au.id = up.id WHERE up.id = $1",
         user_id,
     )
     if not user:
@@ -473,7 +473,7 @@ async def delete_user(user_id: str, deleted_by_id: str, hard_delete: bool = Fals
                 # Delete user_profiles first (if not cascading)
                 await execute_query("DELETE FROM user_profiles WHERE id = $1", UUID(user_id))
                 # Delete from users table
-                await execute_query("DELETE FROM users WHERE id = $1", UUID(user_id))
+                await execute_query("DELETE FROM auth.users WHERE id = $1", UUID(user_id))
             else:
                 # Production mode: Use Supabase Admin API
                 from app.utils.supabase_client import get_supabase_client
@@ -498,7 +498,7 @@ async def delete_user(user_id: str, deleted_by_id: str, hard_delete: bool = Fals
 
     # Log activity
     admin = await fetch_one(
-        "SELECT au.email, r.role_name FROM user_profiles up JOIN users au ON au.id = up.id LEFT JOIN roles r ON r.id = up.role_id WHERE up.id = $1",
+        "SELECT au.email, r.role_name FROM user_profiles up JOIN auth.users au ON au.id = up.id LEFT JOIN roles r ON r.id = up.role_id WHERE up.id = $1",
         deleted_by_id,
     )
     await log_activity(
@@ -686,7 +686,7 @@ async def get_module_users_count(module_id: int) -> Dict:
             r.role_name
         FROM user_module_permissions ump
         JOIN user_profiles up ON up.id = ump.user_id
-        JOIN users u ON u.id = up.id
+        JOIN auth.users u ON u.id = up.id
         LEFT JOIN roles r ON r.id = up.role_id
         WHERE ump.module_id = $1 AND ump.can_access = TRUE
         ORDER BY up.full_name
@@ -791,11 +791,11 @@ async def update_user_permissions(
 
     # Log activity
     admin = await fetch_one(
-        "SELECT au.email, r.role_name FROM user_profiles up JOIN users au ON au.id = up.id LEFT JOIN roles r ON r.id = up.role_id WHERE up.id = $1",
+        "SELECT au.email, r.role_name FROM user_profiles up JOIN auth.users au ON au.id = up.id LEFT JOIN roles r ON r.id = up.role_id WHERE up.id = $1",
         granted_by_id,
     )
     user_email = await fetch_one(
-        "SELECT email FROM users WHERE id = $1", user_id
+        "SELECT email FROM auth.users WHERE id = $1", user_id
     )
     await log_activity(
         user_id=granted_by_id,
