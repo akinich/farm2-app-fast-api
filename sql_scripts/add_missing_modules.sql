@@ -71,8 +71,8 @@ VALUES (
     'Communication',
     'Manage all communication channels: Email, Telegram, Webhooks, API Keys, and Real-time notifications',
     '📡',
-    50,
     true,
+    50,
     NULL
 ) ON CONFLICT (module_key) DO NOTHING;
 
