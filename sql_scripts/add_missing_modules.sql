@@ -11,14 +11,14 @@ BEGIN;
 -- ============================================================================
 -- STEP 1: Add Documentation Module
 -- ============================================================================
-INSERT INTO modules (module_key, module_name, description, icon, display_order, is_active, parent_module_id)
+INSERT INTO modules (module_key, module_name, description, icon, is_active, display_order, parent_module_id)
 VALUES (
     'docs',
     'Documentation',
     'System documentation and guides',
     '📚',
-    90,
     true,
+    90,
     NULL
 ) ON CONFLICT (module_key) DO NOTHING;
 
@@ -38,25 +38,25 @@ BEGIN
     END IF;
 
     -- Insert admin sub-modules
-    INSERT INTO modules (module_key, module_name, description, icon, display_order, is_active, parent_module_id)
+    INSERT INTO modules (module_key, module_name, description, icon, is_active, display_order, parent_module_id)
     VALUES
         -- User Management
-        ('admin_users', 'User Management', 'Manage users, roles, and permissions', '👥', 1, true, admin_module_id),
+        ('admin_users', 'User Management', 'Manage users, roles, and permissions', '👥', true, 1, admin_module_id),
 
         -- Module Management
-        ('admin_modules', 'Module Management', 'Enable/disable system modules', '⚙️', 2, true, admin_module_id),
+        ('admin_modules', 'Module Management', 'Enable/disable system modules', '⚙️', true, 2, admin_module_id),
 
         -- Activity Logs
-        ('admin_activity', 'Activity Logs', 'View system activity and audit trail', '📜', 3, true, admin_module_id),
+        ('admin_activity', 'Activity Logs', 'View system activity and audit trail', '📜', true, 3, admin_module_id),
 
         -- Security Dashboard
-        ('admin_security', 'Security Dashboard', 'Sessions, login history, and security stats', '🔒', 4, true, admin_module_id),
+        ('admin_security', 'Security Dashboard', 'Sessions, login history, and security stats', '🔒', true, 4, admin_module_id),
 
         -- Units of Measurement
-        ('admin_units', 'Units of Measurement', 'Manage standardized measurement units', '📏', 5, true, admin_module_id),
+        ('admin_units', 'Units of Measurement', 'Manage standardized measurement units', '📏', true, 5, admin_module_id),
 
         -- Settings
-        ('admin_settings', 'Settings', 'System settings and configuration', '⚙️', 6, true, admin_module_id)
+        ('admin_settings', 'Settings', 'System settings and configuration', '⚙️', true, 6, admin_module_id)
     ON CONFLICT (module_key) DO NOTHING;
 
     RAISE NOTICE 'Admin sub-modules created successfully';
