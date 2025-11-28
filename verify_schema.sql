@@ -2,19 +2,10 @@
 -- DATABASE SCHEMA VERIFICATION SCRIPT
 -- Checks if database schema matches code at commit 3fb0a16
 -- ============================================================================
--- Run this with: psql <your_database_url> -f verify_schema.sql
+-- Run this in Supabase SQL Editor
 -- ============================================================================
 
-\echo ''
-\echo '================================================================================'
-\echo 'DATABASE SCHEMA VERIFICATION FOR COMMIT 3fb0a16'
-\echo '================================================================================'
-\echo ''
-
-\echo 'Checking required tables...'
-\echo ''
-
--- Check if tables exist
+-- STEP 1: Check if all required tables exist
 SELECT
     CASE
         WHEN COUNT(*) = 10 THEN '✅ ALL REQUIRED TABLES PRESENT'
@@ -37,11 +28,7 @@ AND table_name IN (
     'api_key_usage'
 );
 
-\echo ''
-\echo 'Detailed table status:'
-\echo ''
-
--- Detailed status for each table
+-- STEP 2: Detailed status for each required table
 SELECT
     required_tables.table_name,
     required_tables.migration,
@@ -67,15 +54,9 @@ LEFT JOIN information_schema.tables actual_tables
     AND actual_tables.table_schema = 'public'
 ORDER BY required_tables.migration, required_tables.table_name;
 
-\echo ''
-\echo '================================================================================'
-\echo 'MISSING TABLES (if any):'
-\echo '================================================================================'
-\echo ''
-
--- Show only missing tables
+-- STEP 3: Show ONLY missing tables (if any)
 SELECT
-    required_tables.table_name,
+    required_tables.table_name as missing_table,
     required_tables.migration,
     required_tables.migration_file
 FROM (
@@ -98,58 +79,24 @@ WHERE NOT EXISTS (
     AND actual_tables.table_schema = 'public'
 );
 
-\echo ''
-\echo 'If tables are missing, run the migration files listed above.'
-\echo ''
-
--- Check webhooks table structure if it exists
-\echo '================================================================================'
-\echo 'WEBHOOKS TABLE STRUCTURE VERIFICATION:'
-\echo '================================================================================'
-\echo ''
-
-DO $$
-BEGIN
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'webhooks') THEN
-        RAISE NOTICE 'Checking webhooks table columns...';
-    ELSE
-        RAISE NOTICE '❌ Webhooks table does not exist!';
-    END IF;
-END $$;
-
+-- STEP 4: Verify webhooks table structure (if exists)
 SELECT
+    'webhooks' as table_name,
     column_name,
     data_type,
     is_nullable
 FROM information_schema.columns
 WHERE table_name = 'webhooks'
+AND table_schema = 'public'
 ORDER BY ordinal_position;
 
-\echo ''
-\echo '================================================================================'
-\echo 'API_KEYS TABLE STRUCTURE VERIFICATION:'
-\echo '================================================================================'
-\echo ''
-
-DO $$
-BEGIN
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'api_keys') THEN
-        RAISE NOTICE 'Checking api_keys table columns...';
-    ELSE
-        RAISE NOTICE '❌ API Keys table does not exist!';
-    END IF;
-END $$;
-
+-- STEP 5: Verify api_keys table structure (if exists)
 SELECT
+    'api_keys' as table_name,
     column_name,
     data_type,
     is_nullable
 FROM information_schema.columns
 WHERE table_name = 'api_keys'
+AND table_schema = 'public'
 ORDER BY ordinal_position;
-
-\echo ''
-\echo '================================================================================'
-\echo 'VERIFICATION COMPLETE'
-\echo '================================================================================'
-\echo ''
