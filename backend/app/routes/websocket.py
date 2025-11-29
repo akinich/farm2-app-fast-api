@@ -34,6 +34,7 @@ from app.websocket.connection_manager import manager
 from app.auth.jwt import verify_access_token
 from app.auth.dependencies import require_admin
 from app.schemas.auth import CurrentUser
+from app.utils.settings_helper import require_feature
 from datetime import datetime
 import logging
 
@@ -44,7 +45,8 @@ router = APIRouter()
 
 @router.get("/status")
 async def get_websocket_status(
-    current_user: CurrentUser = Depends(require_admin)
+    current_user: CurrentUser = Depends(require_admin),
+    _: bool = Depends(require_feature("websockets_enabled"))
 ):
     """Get WebSocket connection status"""
     online_users = manager.get_online_users()
@@ -59,7 +61,8 @@ async def get_websocket_status(
 
 @router.post("/test")
 async def test_websocket(
-    current_user: CurrentUser = Depends(require_admin)
+    current_user: CurrentUser = Depends(require_admin),
+    _: bool = Depends(require_feature("websockets_enabled"))
 ):
     """Send a test notification via WebSocket to the current user"""
     user_id = str(current_user.id)
