@@ -1,6 +1,6 @@
 """
 ================================================================================
-Farm Management System - Inventory Module Routes
+Farm ERP - Inventory Module Routes
 ================================================================================
 Version: 1.4.0
 Last Updated: 2025-11-21

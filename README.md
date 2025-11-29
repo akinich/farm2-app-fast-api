@@ -1,4 +1,4 @@
-# 🌾 Farm Management System - FastAPI + React
+# 🌾 Farm ERP - FastAPI + React
 
 A modern, full-stack farm management system migrated from Streamlit to FastAPI backend + React frontend for improved performance, scalability, and user experience.
 
@@ -30,7 +30,7 @@ A modern, full-stack farm management system migrated from Streamlit to FastAPI b
 
 ## 🎯 Overview
 
-The Farm Management System is a comprehensive solution for managing farm operations including:
+The Farm ERP is a comprehensive solution for managing farm operations including:
 
 - **Inventory Management** - Track stock, suppliers, purchase orders with FIFO costing
 - **Biofloc Aquaculture** - Manage fish tanks, water quality, growth, and feeding *(coming soon)*
@@ -333,7 +333,7 @@ Edit `backend/.env` with these values:
 
 ```bash
 # App Settings
-APP_NAME=Farm Management System
+APP_NAME=Farm ERP
 APP_ENV=development
 DEBUG=True
 API_VERSION=v1
@@ -373,7 +373,7 @@ Edit `frontend/.env`:
 VITE_API_BASE_URL=http://localhost:8000
 
 # App Info
-VITE_APP_NAME=Farm Management System
+VITE_APP_NAME=Farm ERP
 VITE_APP_VERSION=1.0.0
 ```
 
@@ -648,7 +648,7 @@ Add each of these (click "Add" after each one):
 
 | Key | Value |
 |-----|-------|
-| `APP_NAME` | `Farm Management System` |
+| `APP_NAME` | `Farm ERP` |
 | `APP_ENV` | `production` |
 | `DEBUG` | `False` |
 | `API_VERSION` | `v1` |
@@ -727,7 +727,7 @@ Click **"Advanced"** > **"Add Environment Variable"**:
 | Key | Value |
 |-----|-------|
 | `VITE_API_BASE_URL` | Your backend URL from Step 2.5 (e.g., `https://farm-api.onrender.com`) |
-| `VITE_APP_NAME` | `Farm Management System` |
+| `VITE_APP_NAME` | `Farm ERP` |
 | `VITE_APP_VERSION` | `1.0.0` |
 
 **3.4 Deploy Frontend**
@@ -1167,7 +1167,7 @@ v1.0.0 (2025-11-17):
 
 ## 📄 License
 
-Proprietary - Farm Management System
+Proprietary - Farm ERP
 
 Copyright © 2025. All rights reserved.
 
@@ -1197,4 +1197,4 @@ For issues, questions, or feature requests:
 
 **Built with ❤️ for modern farm management**
 
-🌾 Farm Management System v1.0.0
+🌾 Farm ERP v1.0.0

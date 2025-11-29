@@ -28,7 +28,7 @@ The Ticket System Module is a comprehensive issue tracking and feature request m
 - PostgreSQL database (>= 12)
 - Python 3.8+ (backend)
 - Node.js 16+ (frontend)
-- Farm Management System core installed
+- Farm ERP core installed
 
 ### Installation
 
@@ -429,5 +429,5 @@ For issues with the ticket system itself:
 
 ## License
 
-Part of the Farm Management System
+Part of the Farm ERP
 © 2025 All rights reserved

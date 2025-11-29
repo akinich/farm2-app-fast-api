@@ -1,6 +1,6 @@
 """
 ================================================================================
-Farm Management System - Inventory Integration Helper
+Farm ERP - Inventory Integration Helper
 ================================================================================
 Version: 1.0.0
 Last Updated: 2025-11-18

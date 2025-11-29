@@ -1,6 +1,6 @@
 """
 ================================================================================
-Farm Management System - Development Planning Schemas
+Farm ERP - Development Planning Schemas
 ================================================================================
 Version: 1.0.0
 Created: 2025-11-20

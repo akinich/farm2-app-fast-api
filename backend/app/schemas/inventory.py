@@ -1,6 +1,6 @@
 """
 ================================================================================
-Farm Management System - Inventory Module Schemas
+Farm ERP - Inventory Module Schemas
 ================================================================================
 Version: 1.4.1
 Last Updated: 2025-11-21

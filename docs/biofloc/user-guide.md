@@ -24,7 +24,7 @@
 
 ### Accessing the Module
 
-1. Log in to the Farm Management System
+1. Log in to the Farm ERP
 2. Navigate to **Biofloc** from the main menu
 3. You'll land on the Dashboard showing current status
 
