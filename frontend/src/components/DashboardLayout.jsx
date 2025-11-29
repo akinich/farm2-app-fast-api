@@ -454,20 +454,7 @@ export default function DashboardLayout() {
           </ListItemButton>
         </ListItem>
 
-        {/* Settings (Admin Only) */}
-        {user?.role?.toLowerCase() === 'admin' && (
-          <ListItem disablePadding>
-            <ListItemButton
-              selected={location.pathname === '/settings'}
-              onClick={() => navigate('/settings')}
-            >
-              <ListItemIcon>
-                <SettingsIcon />
-              </ListItemIcon>
-              <ListItemText primary="Settings" />
-            </ListItemButton>
-          </ListItem>
-        )}
+
 
         {/* Dynamic Modules (only top-level, exclude dashboard) */}
         {topLevelModules.map((module) => {
