@@ -1,6 +1,6 @@
-# Farm Management System - Frontend
+# Farm ERP - Frontend
 
-Modern React frontend for the Farm Management System with Material-UI.
+Modern React frontend for the Farm ERP with Material-UI.
 
 ## Version
 **v1.0.0** - 2025-11-17
@@ -159,7 +159,7 @@ npm run lint         # Run ESLint
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `VITE_API_BASE_URL` | `http://localhost:8000` | Backend API URL |
-| `VITE_APP_NAME` | `Farm Management System` | Application name |
+| `VITE_APP_NAME` | `Farm ERP` | Application name |
 | `VITE_APP_VERSION` | `1.0.0` | Version number |
 
 ## API Integration
@@ -250,4 +250,4 @@ Verify user has permission to access the module
 
 ## License
 
-Proprietary - Farm Management System v1.0.0
+Proprietary - Farm ERP v1.0.0

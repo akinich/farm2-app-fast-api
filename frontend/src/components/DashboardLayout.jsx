@@ -435,7 +435,7 @@ export default function DashboardLayout() {
     <Box>
       <Toolbar sx={{ backgroundColor: 'primary.main', color: 'white' }}>
         <Typography variant="h6" noWrap component="div">
-          Farm Management
+          Farm ERP
         </Typography>
       </Toolbar>
       <Divider />
@@ -625,7 +625,7 @@ export default function DashboardLayout() {
       {/* Session Timeout Warning Dialog */}
       <Dialog
         open={showTimeoutWarning}
-        onClose={() => {}} // Prevent closing by clicking outside
+        onClose={() => { }} // Prevent closing by clicking outside
         maxWidth="xs"
         fullWidth
       >

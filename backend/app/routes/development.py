@@ -1,6 +1,6 @@
 """
 ================================================================================
-Farm Management System - Development Planning Routes
+Farm ERP - Development Planning Routes
 ================================================================================
 Version: 1.1.0
 Last Updated: 2025-11-20

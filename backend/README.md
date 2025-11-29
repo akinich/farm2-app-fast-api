@@ -1,4 +1,4 @@
-# Farm Management System - Backend API
+# Farm ERP - Backend API
 
 **Version: 1.0.0** | **Last Updated: 2025-11-17**
 
@@ -505,4 +505,4 @@ uvicorn app.main:app --host 0.0.0.0 --port $PORT
 
 ## License
 
-Proprietary - Farm Management System v1.0.0
+Proprietary - Farm ERP v1.0.0

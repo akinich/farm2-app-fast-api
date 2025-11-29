@@ -31,7 +31,7 @@ The Inventory Management Module is a comprehensive stock tracking and control sy
 - PostgreSQL database (>= 12)
 - Python 3.8+ (backend)
 - Node.js 16+ (frontend)
-- Farm Management System core installed
+- Farm ERP core installed
 
 ### Installation
 
@@ -477,5 +477,5 @@ For issues, questions, or contributions:
 
 ## License
 
-Part of the Farm Management System
+Part of the Farm ERP
 © 2025 All rights reserved

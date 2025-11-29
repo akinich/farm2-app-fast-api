@@ -1,6 +1,6 @@
 """
 ================================================================================
-Farm Management System - Password Hashing & Verification
+Farm ERP - Password Hashing & Verification
 ================================================================================
 Version: 1.2.0
 Last Updated: 2025-11-17

@@ -1,4 +1,4 @@
-# Welcome to the Farm Management System! 🐟
+# Welcome to the Farm ERP! 🐟
 
 ## What is this app?
 

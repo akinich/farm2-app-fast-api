@@ -1,6 +1,6 @@
 """
 ================================================================================
-Farm Management System - Authentication Routes
+Farm ERP - Authentication Routes
 ================================================================================
 Version: 1.2.0
 Last Updated: 2025-11-21

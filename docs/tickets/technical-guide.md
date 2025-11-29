@@ -1233,7 +1233,7 @@ VITE_API_BASE_URL=https://your-backend-api.com
 
 ## License
 
-Part of the Farm Management System
+Part of the Farm ERP
 © 2025 All rights reserved
 
 ---

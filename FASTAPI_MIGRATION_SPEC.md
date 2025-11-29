@@ -1,4 +1,4 @@
-# Farm Management System - FastAPI Migration Specification
+# Farm ERP - FastAPI Migration Specification
 
 **Version:** 2.0.0
 **Date:** November 17, 2025
@@ -1667,4 +1667,4 @@ For questions about this specification:
 
 **End of Specification**
 
-*This document contains all information needed to build a production-ready FastAPI backend for the Farm Management System, migrating from the current Streamlit implementation while preserving all business logic and improving performance 10-100x.*
+*This document contains all information needed to build a production-ready FastAPI backend for the Farm ERP, migrating from the current Streamlit implementation while preserving all business logic and improving performance 10-100x.*

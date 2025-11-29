@@ -309,7 +309,7 @@ All email configuration is stored in `system_settings`:
    - **For SMTP:** Enter host, port, username, password
 
 4. Set **From Email** (e.g., `noreply@yourfarm.com`)
-5. Set **From Name** (e.g., `Farm Management System`)
+5. Set **From Name** (e.g., `Farm ERP`)
 6. Click **Save Changes**
 
 ### Step 3: Test Configuration
@@ -630,7 +630,7 @@ All endpoints require **admin authentication** (`require_admin` dependency).
 1. **Sign up:** https://sendgrid.com
 2. **Create API Key:**
    - Settings → API Keys → Create API Key
-   - Name: "Farm Management System"
+   - Name: "Farm ERP"
    - Permissions: **Full Access** (or "Mail Send")
    - Copy the key (starts with `SG.`)
 
@@ -967,7 +967,7 @@ docs/
 
 ## License & Credits
 
-**Part of:** Farm Management System
+**Part of:** Farm ERP
 **Module:** Communication / Email & SMTP
 **License:** [Your License]
 **Author:** Farm2 Development Team
