@@ -108,6 +108,25 @@ async def websocket_endpoint(
     user_id = None
 
     try:
+        # Check if WebSocket feature is enabled
+        from app.database import get_db
+        from app.utils.settings_helper import get_setting_with_fallback
+        
+        pool = get_db()
+        async with pool.acquire() as conn:
+            enabled = await get_setting_with_fallback(
+                conn,
+                "features.websockets_enabled",
+                env_fallback=None,
+                default="false"
+            )
+            is_enabled = enabled in ("true", True, "True", "1", 1)
+            
+            if not is_enabled:
+                logger.warning("WebSocket connection rejected: feature is disabled")
+                await websocket.close(code=1008, reason="WebSocket feature is disabled")
+                return
+        
         # Verify token
         payload = verify_access_token(token)
         if not payload or 'sub' not in payload:
