@@ -221,17 +221,16 @@ async def get_supabase_credentials(
 # ============================================================================
 
 
-async def require_feature(feature_key: str):
+def require_feature(feature_key: str):
     """
-    FastAPI dependency that checks if a feature flag is enabled.
+    FastAPI dependency factory that checks if a feature flag is enabled.
 
     Raises HTTPException(403) if the feature is disabled.
 
     Usage:
-        @router.get("/")
+        @router.get("/", dependencies=[Depends(require_feature("api_keys_enabled"))])
         async def my_endpoint(
-            current_user: CurrentUser = Depends(get_current_user),
-            _: bool = Depends(require_feature("api_keys_enabled"))
+            current_user: CurrentUser = Depends(get_current_user)
         ):
             # This endpoint only runs if features.api_keys_enabled is true
             pass
